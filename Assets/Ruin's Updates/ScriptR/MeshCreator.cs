@@ -99,8 +99,7 @@ public class MeshCreator : MonoBehaviour
     }
 
     // Subdivide a face into uniform triangles
-    private void SubdivideFaceWithUniformTriangles(List<Vector3> verticesList, List<int> trianglesList,
-        Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, int subdivisionsX, int subdivisionsY)
+    private void SubdivideFaceWithUniformTriangles(List<Vector3> verticesList, List<int> trianglesList, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, int subdivisionsX, int subdivisionsY)
     {
         // Calculate the step size for subdivisions
         Vector3 stepX = (v1 - v0) / subdivisionsX;
@@ -138,7 +137,6 @@ public class MeshCreator : MonoBehaviour
             }
         }
     }
-
 
 
     // Update is called once per frame
