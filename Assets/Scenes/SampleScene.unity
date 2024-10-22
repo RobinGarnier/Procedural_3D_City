@@ -152,10 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe591279b5956ef449b8669812e5cedb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dimension: {x: 1, y: 1, z: 1}
+  dimension: {x: 2, y: 1, z: 1}
   VerticeSpace: 1
-  create: 0
-  cubeType: 0
+  create: 1
   useRelDimension: 0
 --- !u!4 &561152444
 Transform:
@@ -387,10 +386,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62230325f067e30498e1f1248818163f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dimension: {x: 3, y: 3, z: 1}
-  subdiv: 3
+  dimension: {x: 3, y: 3, z: 4}
+  subdiv: 1
   VerticeSpace: 1
-  create: 1
+  create: 0
   cubeType: 0
   useRelDimension: 0
 --- !u!4 &2120869152

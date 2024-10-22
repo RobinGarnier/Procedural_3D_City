@@ -13,268 +13,137 @@ public class MeshCreator : MonoBehaviour
     public Vector3 dimension;
     public float VerticeSpace;
     public bool create = false;
-    public bool cubeType = false;
     public bool useRelDimension = false;
 
 
-
-    public void CreateCube(Vector3 dimensionXYZ, float VerticeSpace=7)
+    public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance)
     {
+        // Calculate subdivisions per face based on the dimension and target vertice distance
+        int subdivisionsX = Mathf.CeilToInt(dimensionXYZ.x / verticeDistance);  // Along the X axis
+        int subdivisionsY = Mathf.CeilToInt(dimensionXYZ.y / verticeDistance);  // Along the Y axis
+        int subdivisionsZ = Mathf.CeilToInt(dimensionXYZ.z / verticeDistance);  // Along the Z axis
 
-        //1) Create an empty GameObject with the required Components
-        cube = new GameObject("Cube");
+        // 1) Create an empty GameObject with the required Components
+        cube = new GameObject("UniformCube");
         cube.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = cube.AddComponent<MeshFilter>();
         Mesh mesh = meshFilter.mesh;
 
+        // Lists to store all vertices, triangles, and UVs
+        List<Vector3> verticesList = new List<Vector3>();
+        List<int> trianglesList = new List<int>();
+        List<Vector2> uvsList = new List<Vector2>();
 
-        //Create a 'Cube' mesh...
+        // Subdivide each face of the cube into small, uniform triangles
+        // Front face
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-left corner
+            subdivisionsX, subdivisionsY);
 
-        //2) Define the cube's dimensions
-        float length = dimensionXYZ[0];
-        float height = dimensionXYZ[1];
-        float thickness = dimensionXYZ[2];
+        // Back face (along X, Y)
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-left corner
+            subdivisionsX, subdivisionsY);  // Subdivide back face (x, y axes)
 
+        // Left face (along Z, Y)
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+            subdivisionsZ, subdivisionsY);  // Subdivide left face (z, y axes)
 
-        //3) Define the co-ordinates of each Corner of the cube 
-        Vector3[] c = new Vector3[8];
+        // Right face (along Z, Y)
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
+            subdivisionsZ, subdivisionsY);  // Subdivide right face (z, y axes)
 
-        c[0] = new Vector3(-length * VerticeSpace/2, -height * VerticeSpace / 2, thickness * VerticeSpace / 2);
-        c[1] = new Vector3(length * VerticeSpace / 2, -height * VerticeSpace / 2, thickness * VerticeSpace / 2);
-        c[2] = new Vector3(length * VerticeSpace / 2, -height * VerticeSpace / 2, -thickness * VerticeSpace / 2);
-        c[3] = new Vector3(-length * VerticeSpace / 2, -height * VerticeSpace / 2, -thickness * VerticeSpace / 2);
+        // Top face (along X, Z)
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+            subdivisionsX, subdivisionsZ);  // Subdivide top face (x, z axes)
 
-        c[4] = new Vector3(-length * VerticeSpace / 2, height * VerticeSpace / 2, thickness * VerticeSpace / 2);
-        c[5] = new Vector3(length * VerticeSpace / 2, height * VerticeSpace / 2, thickness * VerticeSpace / 2);
-        c[6] = new Vector3(length * VerticeSpace / 2, height * VerticeSpace / 2, -thickness * VerticeSpace / 2);
-        c[7] = new Vector3(-length * VerticeSpace / 2, height * VerticeSpace / 2, -thickness * VerticeSpace / 2);
+        // Bottom face (along X, Z)
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
+            subdivisionsX, subdivisionsZ);  // Subdivide bottom face (x, z axes)
 
+        // Apply the same for other 5 faces of the cube with different normals
 
-        //4) Define the vertices that the cube is composed of:
-        //I have used 16 vertices (4 vertices per side). 
-        //This is because I want the vertices of each side to have separate normals.
-        //(so the object renders light/shade correctly) 
-        Vector3[] vertices = new Vector3[]
-        {
-            c[0], c[1], c[2], c[3], // Bottom
-	        c[7], c[4], c[0], c[3], // Left
-	        c[4], c[5], c[1], c[0], // Front
-	        c[6], c[7], c[3], c[2], // Back
-	        c[5], c[6], c[2], c[1], // Right
-	        c[7], c[6], c[5], c[4]  // Top
-        };
-
-
-        //5) Define each vertex's Normal
-        Vector3 up = Vector3.up;
-        Vector3 down = Vector3.down;
-        Vector3 forward = Vector3.forward;
-        Vector3 back = Vector3.back;
-        Vector3 left = Vector3.left;
-        Vector3 right = Vector3.right;
-
-
-        Vector3[] normals = new Vector3[]
-        {
-            down, down, down, down,             // Bottom
-	        left, left, left, left,             // Left
-	        forward, forward, forward, forward,	// Front
-	        back, back, back, back,             // Back
-	        right, right, right, right,         // Right
-	        up, up, up, up	                    // Top
-        };
-         
-
-        //6) Define each vertex's UV co-ordinates
-        Vector2 uv00 = new Vector2(0f, 0f);
-        Vector2 uv10 = new Vector2(1f, 0f);
-        Vector2 uv01 = new Vector2(0f, 1f);
-        Vector2 uv11 = new Vector2(1f, 1f);
-
-        Vector2[] uvs = new Vector2[]
-        {
-            uv11, uv01, uv00, uv10, // Bottom
-	        uv11, uv01, uv00, uv10, // Left
-	        uv11, uv01, uv00, uv10, // Front
-	        uv11, uv01, uv00, uv10, // Back	        
-	        uv11, uv01, uv00, uv10, // Right 
-	        uv11, uv01, uv00, uv10  // Top
-        };
-
-
-        //7) Define the Polygons (triangles) that make up the our Mesh (cube)
-        //IMPORTANT: Unity uses a 'Clockwise Winding Order' for determining front-facing polygons.
-        //This means that a polygon's vertices must be defined in 
-        //a clockwise order (relative to the camera) in order to be rendered/visible.
-        int[] triangles = new int[]
-        {
-            3, 1, 0,        3, 2, 1,        // Bottom	
-	        7, 5, 4,        7, 6, 5,        // Left
-	        11, 9, 8,       11, 10, 9,      // Front
-	        15, 13, 12,     15, 14, 13,     // Back
-	        19, 17, 16,     19, 18, 17,	    // Right
-	        23, 21, 20,     23, 22, 21,	    // Top
-        };
-
-
-        //8) Build the Mesh
+        // 8) Build the Mesh
         mesh.Clear();
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.normals = normals;
-        mesh.uv = uvs;
+        mesh.vertices = verticesList.ToArray();
+        mesh.triangles = trianglesList.ToArray();
+        mesh.RecalculateNormals();
+        mesh.uv = uvsList.ToArray();
         mesh.Optimize();
-        //mesh.RecalculateNormals();
 
-        //cube.transform.Translate(0f, 1f, -8f);
-
-        //9) Give it a Material
+        // 9) Give it a Material
         Material cubeMaterial = new Material(Shader.Find("Standard"));
-        //cubeMaterial.SetColor("_Color", new Color(0f, 0.7f, 0f)); //green main color
         cube.GetComponent<Renderer>().material = cubeMaterial;
     }
 
-    
-    public void CreatePlan(Vector3 dimensionXYZ, float VerticeSpace = 7, bool useRealDimension = false)
+    // Subdivide a face into uniform triangles
+    private void SubdivideFaceWithUniformTriangles(List<Vector3> verticesList, List<int> trianglesList,
+        Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, int subdivisionsX, int subdivisionsY)
     {
-        //1) Create an empty GameObject with the required Components
-        plan = new GameObject("Plan");
-        plan.AddComponent<MeshRenderer>();
-        MeshFilter meshFilter = plan.AddComponent<MeshFilter>();
-        Mesh mesh = meshFilter.mesh;
+        // Calculate the step size for subdivisions
+        Vector3 stepX = (v1 - v0) / subdivisionsX;
+        Vector3 stepY = (v3 - v0) / subdivisionsY;
 
-
-        //Create a 'Cube' mesh...
-
-        //2) Define the cube's dimensions
-        float length = dimensionXYZ[0];
-        float height = dimensionXYZ[1];
-        float width = dimensionXYZ[2];
-
-
-        //3) Define the co-ordinates of each Corner of the cube 
-        List<int> trianglesList = new List<int>();
-        List<Vector3> verticesList = new List<Vector3>();
-        List<Vector3> normalsList = new List<Vector3>();
-        List<Vector2> uvsList = new List<Vector2>();
-
-        Vector3 up = Vector3.up;
-        Vector2 uv00 = new Vector2(0f, 0f);
-        Vector2 uv10 = new Vector2(1f, 0f);
-        Vector2 uv01 = new Vector2(0f, 1f);
-        Vector2 uv11 = new Vector2(1f, 1f);
-
-        Vector3[] c = new Vector3[(int)((length+1)*(width+1))];
-        if (useRealDimension)
+        // Loop through each subdivision to create uniform quads and split them into triangles
+        for (int i = 0; i < subdivisionsX; i++)
         {
-            c[0] = new Vector3(-length * VerticeSpace / 2, 0, width * VerticeSpace / 2);
-            c[1] = new Vector3(length * VerticeSpace / 2, 0, width * VerticeSpace / 2);
-            c[2] = new Vector3(length * VerticeSpace / 2, 0, -width * VerticeSpace / 2);
-            c[3] = new Vector3(-length * VerticeSpace / 2, 0, -width * VerticeSpace / 2);
-        }
-        else
-        {
-            int index = 0;
-            for( int i = 0; i < length + 1; i++)
+            for (int j = 0; j < subdivisionsY; j++)
             {
-                for(int j = 0; j < width + 1; j++)
-                {
-                    c[index] = new Vector3(i * VerticeSpace, 0, j * VerticeSpace);
-                    if(i!= 0) 
-                    {
-                        trianglesList.Add((int)(index-width));
-                        trianglesList.Add((int)(index-width-1));
-                        trianglesList.Add(index);
-                        if (j != 0)
-                        {
-                            verticesList.Add(c[(int)(index-width)]);
-                            verticesList.Add(c[(int)(index-width+1)]);
-                            verticesList.Add(c[index-1]);
-                            verticesList.Add(c[index]);
+                // Bottom-left corner of the current quad
+                Vector3 bl = v0 + stepX * i + stepY * j;
+                Vector3 br = bl + stepX;  // Bottom-right
+                Vector3 tl = bl + stepY;  // Top-left
+                Vector3 tr = bl + stepX + stepY;  // Top-right
 
-                            uvsList.Add(uv11);
-                            uvsList.Add(uv01);
-                            uvsList.Add(uv00);
-                            uvsList.Add(uv10);
+                // Add vertices to the list
+                verticesList.Add(bl);  // 0
+                verticesList.Add(br);  // 1
+                verticesList.Add(tl);  // 2
+                verticesList.Add(tr);  // 3
 
-                            normalsList.Add(up);
-                            normalsList.Add(up);
-                            normalsList.Add(up);
-                            normalsList.Add(up);
-                        }
-                    }
-                    index++;
-                }
+                int vertIndex = verticesList.Count - 4;  // Index of the bottom-left vertex of the quad
+
+                // Split the quad into two triangles (uniform size)
+                trianglesList.Add(vertIndex);       // Triangle 1: Bottom-left
+                trianglesList.Add(vertIndex + 1);   // Triangle 1: Bottom-right
+                trianglesList.Add(vertIndex + 2);   // Triangle 1: Top-left
+                
+
+                trianglesList.Add(vertIndex + 1);   // Triangle 2: Bottom-right
+                trianglesList.Add(vertIndex + 3);   // Triangle 2: Top-right
+                trianglesList.Add(vertIndex + 2);   // Triangle 2: Top-left
+                
             }
         }
-        
-
-
-        //4) Define the vertices that the cube is composed of:
-        //I have used 16 vertices (4 vertices per side). 
-        //This is because I want the vertices of each side to have separate normals.
-        //(so the object renders light/shade correctly) 
-        Vector3[] vertices = new Vector3[]
-        {
-            c[0], c[(int)width], c[c.Length-1], c[c.Length-1-(int)width]
-        };
-        if (useRealDimension ==false)
-        {
-            vertices = verticesList.ToArray();
-        }
-        Debug.Log($"vertice : ${vertices.Length}");
-
-
-        //5) Define each vertex's Normal
-        //Vector3 up = Vector3.up;
-
-
-        Vector3[] normals = new Vector3[] {up, up, up, up	};
-        //normals = new List<Vector3> { vertices.Length * up }.ToArray();
-        if (useRealDimension==false)
-        {
-            normals = normalsList.ToArray();
-        }
-        Debug.Log($"normal : ${normals.Length}");
-
-
-        //6) Define each vertex's UV co-ordinates
-        Vector2[] uvs = new Vector2[] { uv11, uv01, uv00, uv10 };// Top};
-        if (useRealDimension == false) { uvs = uvsList.ToArray(); }
-        Debug.Log($"uv : ${uvs.Length}");
-
-        //7) Define the Polygons (triangles) that make up the our Mesh (cube)
-        //IMPORTANT: Unity uses a 'Clockwise Winding Order' for determining front-facing polygons.
-        //This means that a polygon's vertices must be defined in 
-        //a clockwise order (relative to the camera) in order to be rendered/visible.
-        int[] triangles = new int[] { 3, 0, 1,        3, 1, 2, };
-        if (useRealDimension==false)
-        {
-            triangles = trianglesList.ToArray();
-        }foreach (int elem in triangles) { Debug.Log($"tri : ${elem}");}
-
-        //8) Build the Mesh
-        mesh.Clear();
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.normals = normals;
-        mesh.uv = uvs;
-        mesh.Optimize();
-        //mesh.RecalculateNormals();
-
-        //cube.transform.Translate(0f, 1f, -8f);
-
-        //9) Give it a Material
-        Material cubeMaterial = new Material(Shader.Find("Standard"));
-        //cubeMaterial.SetColor("_Color", new Color(0f, 0.7f, 0f)); //green main color
-        plan.GetComponent<Renderer>().material = cubeMaterial;
     }
-    
-    
-    
+
+
+
     // Update is called once per frame
     private void Update()
     {
-        if (create) { if (cubeType) { CreateCube(dimension, VerticeSpace); } else { CreatePlan(dimension, VerticeSpace, useRelDimension); } create = false; }
+        if (create) { CreateUniformCube(dimension, VerticeSpace); create = false; }
     }
 }

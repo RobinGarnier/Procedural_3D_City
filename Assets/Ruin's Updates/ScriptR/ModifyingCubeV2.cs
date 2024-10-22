@@ -60,12 +60,12 @@ public class ModifyingCubeV2 : MonoBehaviour
         List<Vector2> uvsList = new List<Vector2>();
 
         // Subdivide each face by calling the helper function
-        SubdivideFace(verticesList, trianglesList, c[0], c[1], c[5], c[4], Vector3.forward, subdivisions); // Front
-        SubdivideFace(verticesList, trianglesList, c[1], c[2], c[6], c[5], Vector3.right, subdivisions);   // Right
-        SubdivideFace(verticesList, trianglesList, c[2], c[3], c[7], c[6], Vector3.back, subdivisions);    // Back
-        SubdivideFace(verticesList, trianglesList, c[3], c[0], c[4], c[7], Vector3.left, subdivisions);    // Left
-        SubdivideFace(verticesList, trianglesList, c[4], c[5], c[6], c[7], Vector3.up, subdivisions);      // Top
-        SubdivideFace(verticesList, trianglesList, c[3], c[2], c[1], c[0], Vector3.down, subdivisions);    // Bottom
+        SubdivideFace(verticesList, trianglesList, c[0], c[1], c[5], c[4], Vector3.forward, (int)dimensionXYZ[0]); // Front
+        SubdivideFace(verticesList, trianglesList, c[1], c[2], c[6], c[5], Vector3.right, (int)dimensionXYZ[2]);   // Right
+        SubdivideFace(verticesList, trianglesList, c[2], c[3], c[7], c[6], Vector3.back, (int)dimensionXYZ[0]);    // Back
+        SubdivideFace(verticesList, trianglesList, c[3], c[0], c[4], c[7], Vector3.left, (int)dimensionXYZ[2]);    // Left
+        SubdivideFace(verticesList, trianglesList, c[4], c[5], c[6], c[7], Vector3.up, (int)dimensionXYZ[1]);      // Top
+        SubdivideFace(verticesList, trianglesList, c[3], c[2], c[1], c[0], Vector3.down, (int)dimensionXYZ[1]);    // Bottom
 
         // 8) Build the Mesh
         mesh.Clear();
