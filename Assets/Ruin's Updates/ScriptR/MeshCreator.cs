@@ -10,10 +10,16 @@ public class MeshCreator : MonoBehaviour
 
     GameObject cube;
     GameObject plan;
+    [Header("Cube")]
     public Vector3 dimension;
     public float VerticeSpace;
     public bool create = false;
-    public bool useRelDimension = false;
+    [Header("Hole")]
+    public bool hole = false;
+    public Vector3 holeLoc;
+    public Vector3 holescale;
+
+
 
 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance)
@@ -138,10 +144,90 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
+    public void CreateHoleInMesh(Mesh mesh, Vector3 holeCenter, Vector3 holeDimensions)
+    {
+        // Get the existing vertices and triangles from the mesh
+        Vector3[] vertices = mesh.vertices;
+        int[] triangles = mesh.triangles;
+
+        // Create new lists to hold the modified mesh data
+        List<Vector3> newVertices = new List<Vector3>(vertices);
+        List<int> newTriangles = new List<int>();
+
+        // Iterate through the triangles
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            // Get the vertex indices for the current triangle
+            int v0 = triangles[i];
+            int v1 = triangles[i + 1];
+            int v2 = triangles[i + 2];
+
+            // Get the actual vertex positions
+            Vector3 p0 = vertices[v0];
+            Vector3 p1 = vertices[v1];
+            Vector3 p2 = vertices[v2];
+
+            // Check if this triangle intersects the hole
+            if (!(IsPointInCube(p0, holeCenter, holeDimensions) &&
+                IsPointInCube(p1, holeCenter, holeDimensions) &&
+                IsPointInCube(p2, holeCenter, holeDimensions) ))
+            {
+                // If the triangle is not in the hole, add it to the new triangle list
+                newTriangles.Add(v0);
+                newTriangles.Add(v1);
+                newTriangles.Add(v2);
+            }
+            // Otherwise, we skip this triangle, which removes it from the mesh
+        }
+
+        // Update the mesh with the new vertices and triangles
+        mesh.Clear();
+        mesh.vertices = newVertices.ToArray();
+        mesh.triangles = newTriangles.ToArray();
+        mesh.RecalculateNormals();  // Recalculate normals to ensure proper lighting
+    }
+
+    // Helper function to check if a triangle is within the hole area
+    private bool IsTriangleInHole(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 faceNormal, Vector3 holeCenter, Vector2 holeDimensions)
+    {
+        // First, ensure the triangle lies on the specified face of the mesh (based on faceNormal)
+        // We check if the triangle is coplanar with the face by projecting vertices onto the faceNormal plane
+        // This ensures we're looking at triangles on the same plane as the face we want to modify
+
+        float tolerance = 0.01f;  // Tolerance to check if vertices are coplanar with the face
+        if (Mathf.Abs(Vector3.Dot(p0 - holeCenter, faceNormal)) > tolerance ||
+            Mathf.Abs(Vector3.Dot(p1 - holeCenter, faceNormal)) > tolerance ||
+            Mathf.Abs(Vector3.Dot(p2 - holeCenter, faceNormal)) > tolerance)
+        {
+            return false;  // Triangle is not in the plane of the face we're modifying
+        }
+
+        // Now check if the triangle's vertices are inside the hole area (projected onto the face)
+        Vector3 projectedP0 = Vector3.ProjectOnPlane(p0 - holeCenter, faceNormal);
+        Vector3 projectedP1 = Vector3.ProjectOnPlane(p1 - holeCenter, faceNormal);
+        Vector3 projectedP2 = Vector3.ProjectOnPlane(p2 - holeCenter, faceNormal);
+
+        Vector2 holeHalfSize = holeDimensions / 2;
+
+        // Check if each vertex lies within the bounds of the hole
+        bool p0InHole = Mathf.Abs(projectedP0.x) <= holeHalfSize.x && Mathf.Abs(projectedP0.y) <= holeHalfSize.y;
+        bool p1InHole = Mathf.Abs(projectedP1.x) <= holeHalfSize.x && Mathf.Abs(projectedP1.y) <= holeHalfSize.y;
+        bool p2InHole = Mathf.Abs(projectedP2.x) <= holeHalfSize.x && Mathf.Abs(projectedP2.y) <= holeHalfSize.y;
+
+        // If all three vertices are inside the hole area, the triangle should be removed
+        return p0InHole && p1InHole && p2InHole;
+    }
+
+    private bool IsPointInCube(Vector3 point, Vector3 holeCenter, Vector3 holeDimensions, float tolerence = 0.01f)
+    {
+        Vector3 localDim = point - holeCenter;
+        return Mathf.Abs(localDim.x) < holeDimensions.x/2 + tolerence && Mathf.Abs(localDim.y) < holeDimensions.y/2 + tolerence && Mathf.Abs(localDim.z) < holeDimensions.z/2 + tolerence;
+    }
 
     // Update is called once per frame
     private void Update()
     {
         if (create) { CreateUniformCube(dimension, VerticeSpace); create = false; }
+        if(hole) { CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale); hole = false; }
     }
 }
