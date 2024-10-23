@@ -71,7 +71,7 @@ namespace City
         List<bool> need = new List<bool>() { false, false, false, false };
         GameObject wallHolder;
 
-         
+
 
 
         [Button("Generate Sol")]
@@ -121,7 +121,7 @@ namespace City
                 {
                     levelCoordinate[i] = (int)Random.Range(0, Mathf.Min((int)(sizeSol / (prefabPlanSol.transform.localScale.z)), (int)(sizeSol / (prefabPlanSol.transform.localScale.x))));
                     levelHeigth[i] = (int)Random.Range(0, nbLevel + 1);
-                    if (levelCoordinate[i] > dimensionSector[0]-minLengthLevel[1] && levelCoordinate[i] < dimensionSector[0]) { levelCoordinate[i] = dimensionSector[0]; }
+                    if (levelCoordinate[i] > dimensionSector[0] - minLengthLevel[1] && levelCoordinate[i] < dimensionSector[0]) { levelCoordinate[i] = dimensionSector[0]; }
                     else if (levelCoordinate[i] > 0 && levelCoordinate[i] < minLengthLevel[1]) { levelCoordinate[i] = 0; }
                 }
 
@@ -139,7 +139,7 @@ namespace City
                         { levelCoordinate[0] += -1; }
                         else { levelCoordinate[2] += 1; }
                     }
-                    if (levelCoordinate[2] > dimensionSector[0]-minLengthLevel[1]) { levelCoordinate[2] = dimensionSector[0]; }
+                    if (levelCoordinate[2] > dimensionSector[0] - minLengthLevel[1]) { levelCoordinate[2] = dimensionSector[0]; }
                 }
                 if (Mathf.Abs(levelCoordinate[1] - levelCoordinate[3]) < minLengthLevel[0])//if (Mathf.Abs(pointOrBas.z-pointOrHaut.z)<4)
                 {
@@ -150,7 +150,7 @@ namespace City
                         { levelCoordinate[1] += -1; }
                         else { levelCoordinate[3] += 1; }
                     }
-                    if (levelCoordinate[3] > dimensionSector[0]-minLengthLevel[1]) { levelCoordinate[3] = dimensionSector[0]; }
+                    if (levelCoordinate[3] > dimensionSector[0] - minLengthLevel[1]) { levelCoordinate[3] = dimensionSector[0]; }
                 }
             }
             else
@@ -167,20 +167,20 @@ namespace City
             levelCoordinate[3] = (int)pointOrHaut.z;
 
             //generate the new floor
-            if (mergeMeshForFloor) 
+            if (mergeMeshForFloor)
             {
                 Vector3 origin = Vector3.zero;
                 Vector3 end = new Vector3(dimensionSector[0], 0, dimensionSector[1]);
                 List<(Vector3, Vector3)> coordList = new List<(Vector3, Vector3)>() { (pointOrBas, pointOrHaut), (origin, new Vector3(pointOrBas.x, 0, pointOrHaut.z)), (new Vector3(0, 0, pointOrHaut.z), new Vector3(pointOrHaut.x, 0, dimensionSector.y)), (new Vector3(pointOrHaut.x, 0, pointOrBas.z), end), (new Vector3(pointOrBas.x, 0, 0), new Vector3(dimensionSector.x, 0, pointOrBas.z)) };
-                for(int i = 0; i < 5; i++)
+                for (int i = 0; i < 5; i++)
                 {
-                    if (levelHeigth[i] > deapthHoles && (Mathf.Abs(coordList[i].Item1.x - coordList[i].Item2.x) > 0 && Mathf.Abs(coordList[i].Item1.z - coordList[i].Item2.z)>0))
+                    if (levelHeigth[i] > deapthHoles && (Mathf.Abs(coordList[i].Item1.x - coordList[i].Item2.x) > 0 && Mathf.Abs(coordList[i].Item1.z - coordList[i].Item2.z) > 0))
                     {
                         GameObject cube = Instantiate(prefabPlanSol);
                         cube.transform.parent = planSolHolder.transform;
-                        cube.transform.localScale = new Vector3(prefabPlanSol.transform.localScale.x * Mathf.Abs(coordList[i].Item1.x - coordList[i].Item2.x), prefabPlanSol.transform.localScale.y * (levelHeigth[i]+1), prefabPlanSol.transform.localScale.x * Mathf.Abs(coordList[i].Item1.z - coordList[i].Item2.z));
-                        
-                        Vector3 position = prefabPlanSol.transform.localScale.x * coordList[i].Item1 + prefabPlanSol.transform.localScale.x/2 * (coordList[i].Item2 - coordList[i].Item1);
+                        cube.transform.localScale = new Vector3(prefabPlanSol.transform.localScale.x * Mathf.Abs(coordList[i].Item1.x - coordList[i].Item2.x), prefabPlanSol.transform.localScale.y * (levelHeigth[i] + 1), prefabPlanSol.transform.localScale.x * Mathf.Abs(coordList[i].Item1.z - coordList[i].Item2.z));
+
+                        Vector3 position = prefabPlanSol.transform.localScale.x * coordList[i].Item1 + prefabPlanSol.transform.localScale.x / 2 * (coordList[i].Item2 - coordList[i].Item1);
                         cube.transform.localPosition = new Vector3(position.x, levelHeigth[i] * prefabPlanSol.transform.localScale.y / 2 - 2.5f, position.z);
                         cube.transform.name = $"Place {i}; Floor{levelHeigth[i]}";
                     }
@@ -265,7 +265,7 @@ namespace City
                 List<int> listIndexlvlCoord = new List<int> { 3, 2, 1, 0 };
                 for (int i = 0; i < 4; i++)
                 {
-                    GameObject WallHolder = transform.GetChild(1).GetChild(i + 3).gameObject;
+                    try { GameObject WallHolder = transform.GetChild(1).GetChild(i + 3).gameObject; } catch { }
                     //WallHolder.transform.eulerAngles = new(0, 90 * i, 0);
 
                     int coordGate = 0;
@@ -354,7 +354,7 @@ namespace City
             {
                 DeleteChildren(grndHolder, "ground");
 
-                try 
+                try
                 {
                     DeleteChildren(escModelHolder);
                     DestroyImmediate(escModelHolder);
@@ -468,8 +468,8 @@ namespace City
                 if (liftPlateform)
                 {
                     //positionne la plateforme et ouvre le mur
-                    if (pointOrBas.x > 0) { if (pointOrHaut.z > 5) { listMatrixConstructFloor[1][0][5] = false; listMatrixConstructFloor[1][1][5] = false; } else { listMatrixConstructFloor[2][0][(int)(5-pointOrHaut.z)] = false; listMatrixConstructFloor[2][1][(int)(5 - pointOrHaut.z)] = false; } }
-                    else { if (pointOrBas.z > 5) { listMatrixConstructFloor[4][0][5] = false; listMatrixConstructFloor[4][1][5] = false; } else { if (pointOrHaut.z > 5) { listMatrixConstructFloor[0][0][5] = false; listMatrixConstructFloor[0][1][5] = false; } else { listMatrixConstructFloor[2][0][(int)(5-pointOrHaut.z)] = false; listMatrixConstructFloor[2][1][(int)(5 - pointOrHaut.z)] = false; } } }
+                    if (pointOrBas.x > 0) { if (pointOrHaut.z > 5) { listMatrixConstructFloor[1][0][5] = false; listMatrixConstructFloor[1][1][5] = false; } else { listMatrixConstructFloor[2][0][(int)(5 - pointOrHaut.z)] = false; listMatrixConstructFloor[2][1][(int)(5 - pointOrHaut.z)] = false; } }
+                    else { if (pointOrBas.z > 5) { listMatrixConstructFloor[4][0][5] = false; listMatrixConstructFloor[4][1][5] = false; } else { if (pointOrHaut.z > 5) { listMatrixConstructFloor[0][0][5] = false; listMatrixConstructFloor[0][1][5] = false; } else { listMatrixConstructFloor[2][0][(int)(5 - pointOrHaut.z)] = false; listMatrixConstructFloor[2][1][(int)(5 - pointOrHaut.z)] = false; } } }
                     prefabHolder.transform.GetChild(9).gameObject.SetActive(true);
                     if (fixWallSurrounding)
                     {
@@ -479,7 +479,7 @@ namespace City
 
                     //prépare l'escalier pour entrer
                     for (int i = 0; i < 3; i++) { prefabHolder.transform.GetChild(9).Find("AccesSector").GetChild(i).gameObject.SetActive(false); }
-                    for(int i=0;i< planSolHolder.transform.GetChild(5).localScale.y / 5; i++) { prefabHolder.transform.GetChild(9).Find("AccesSector").GetChild(i).gameObject.SetActive(true); }
+                    for (int i = 0; i < planSolHolder.transform.GetChild(5).localScale.y / 5; i++) { prefabHolder.transform.GetChild(9).Find("AccesSector").GetChild(i).gameObject.SetActive(true); }
 
                     if (planSolHolder.transform.GetChild(5).localScale.y == 15)
                     {
@@ -487,7 +487,7 @@ namespace City
                         planSolHolder.transform.GetChild(5).localScale = new(7, 10, 7);
                     }
                 }
-                else if(fixWallSurrounding)
+                else if (fixWallSurrounding)
                 {
                     prefabHolder.transform.GetChild(9).gameObject.SetActive(false);
                     transform.Find("MurExtPrefab").GetChild(2).GetChild(0).localPosition = new(-78.4056f, 9.75f, -1.67f);
@@ -920,11 +920,11 @@ namespace City
             else
             {
                 int height = 0;
-                foreach(List<List<bool>> tableau in listMatrixConstructFloor)
+                foreach (List<List<bool>> tableau in listMatrixConstructFloor)
                 {
-                    for(int i = 0; i < tableau.Count; i++)
+                    for (int i = 0; i < tableau.Count; i++)
                     {
-                        for(int j = 0; j < tableau[0].Count; j++)
+                        for (int j = 0; j < tableau[0].Count; j++)
                         {
                             if (tableau[i][j])
                             {
@@ -950,7 +950,7 @@ namespace City
 
             if (listCubeCatWalk.Count > 0)
             {
-                foreach(GameObject elem in listCubeCatWalk)
+                foreach (GameObject elem in listCubeCatWalk)
                 {
                     Destroy(elem);
                 }
@@ -1013,13 +1013,13 @@ namespace City
 
                     GameObject cubeSuite = Instantiate(echafPlat.transform.GetChild(0).gameObject);
                     cubeSuite.transform.position = listCoordCorner[i];
-                    cubeSuite.transform.GetChild(0).localScale = new Vector3(2, 5.5f, 138-lengthcubePlat - Mathf.Abs(levelDiff)*6.1f);
+                    cubeSuite.transform.GetChild(0).localScale = new Vector3(2, 5.5f, 138 - lengthcubePlat - Mathf.Abs(levelDiff) * 6.1f);
                     cubeSuite.transform.eulerAngles = new Vector3(0, 90 * i, 0);
 
                     float indexHeight = 0;
-                    if(levelDiff > 0) { indexHeight = -levelDiff * 5.5f; }
-                    else if(levelDiff < 0) { indexHeight = -levelDiff * 5.5f; }
-                    cubeSuite.transform.GetChild(0).localPosition = new Vector3(0, planSolHolder.transform.GetChild(listIndexPosition[i]).localScale.y + indexHeight, lengthcubePlat + Mathf.Abs(levelDiff) * 6.1f + (138 - lengthcubePlat - Mathf.Abs(levelDiff) * 6.1f) /2);
+                    if (levelDiff > 0) { indexHeight = -levelDiff * 5.5f; }
+                    else if (levelDiff < 0) { indexHeight = -levelDiff * 5.5f; }
+                    cubeSuite.transform.GetChild(0).localPosition = new Vector3(0, planSolHolder.transform.GetChild(listIndexPosition[i]).localScale.y + indexHeight, lengthcubePlat + Mathf.Abs(levelDiff) * 6.1f + (138 - lengthcubePlat - Mathf.Abs(levelDiff) * 6.1f) / 2);
 
                     cubeSuite.transform.parent = echafPlat.transform;
                     listCubeCatWalk.Add(cubeSuite);
@@ -1028,7 +1028,7 @@ namespace City
             }
         }
 
-        public bool WallCheck()
+        public bool WallCheck(bool debug = false)
         {
             /*wall rules: 
              *         V   1- neighbor(0-3) : connection to subdiv>itself
@@ -1038,30 +1038,34 @@ namespace City
 
             //define the need of wall around it
             List<bool> faceInNeed = new List<bool>() { false, false, false, false };
-            bool needConstruct = false;
+            need = new List<bool>() { false, false, false, false };
             SubDivisionHolder holderScript = gameObject.GetComponent<SubDivisionHolder>();
             neighbors = holderScript.neighbors;
-            for(int i = 0; i < 4; i++)
+            if (debug) { Debug.Log($"WallCheck_ ${gameObject.name} : "); }
+            for (int i = 0; i < 4; i++)
             {
                 // _1
-                if (neighbors[i].type == SubDivisionHolder.Neighbors.neighborsTypes.Holder)
+                if (neighbors[i].subdivision < subdivision)
                 {
                     faceInNeed[i] = true;
+                    if (debug) { Debug.Log($" ${i} :SubDiv"); }
                 }
                 //_2
-                else if(neighbors[i].type == SubDivisionHolder.Neighbors.neighborsTypes.OpenSpace)
+                else if (neighbors[i].type == SubDivisionHolder.Neighbors.neighborsTypes.OpenSpace)
                 {
                     if (neighbors[4].type == SubDivisionHolder.Neighbors.neighborsTypes.OpenSpace)
                     {
                         faceInNeed[i] = true;
+                        if (debug) { Debug.Log($" ${i} :CornerOpen"); }
                     }
                 }
                 //_3
-                else if(neighbors[i].type == SubDivisionHolder.Neighbors.neighborsTypes.EmptySpace)
+                else if (neighbors[i].type == SubDivisionHolder.Neighbors.neighborsTypes.EmptySpace)
                 {
                     if (neighbors[4].type == SubDivisionHolder.Neighbors.neighborsTypes.OpenSpace || neighbors[5].type == SubDivisionHolder.Neighbors.neighborsTypes.OpenSpace)
                     {
                         faceInNeed[i] = true;
+                        if (debug) { Debug.Log($"${i} :MiddleOpen"); }
                     }
                 }
             }
@@ -1072,15 +1076,17 @@ namespace City
         }
 
         [Button("Build Walls")]
-        public void WallBuilding(bool reset = false) 
+        public void BuildWalls() { WallBuilding(true); }
+
+        public void WallBuilding(bool reset = false)
         {
             //use it only on unwalled sector and check the need to recreate old walls
-            if(fixWallSurrounding == false && WallCheck())
+            if (fixWallSurrounding == false && WallCheck(reset))
             {
                 if (reset)
                 {
                     //Deleate the old walls
-                    DeleteChildren(wallHolder);
+                    DeleteChildren(planSolHolder, "Volumic Wall");
                     wallSide = new List<bool>() { false, false, false, false };
                 }
 
@@ -1089,13 +1095,13 @@ namespace City
                 void WallConstruct(int position)
                 {
                     GameObject wallPrefab = transform.GetChild(1).GetChild(2).gameObject;
-                    for(int i=0; i < dimensionSector[0]; i++)
+                    for (int i = 0; i < dimensionSector[0]; i++)
                     {
 
                         GameObject newWall = Instantiate(wallPrefab);
                         newWall.transform.parent = planSolHolder.transform;
                         newWall.transform.localScale = new Vector3(7, sizeSol, 7); //transform.parent.GetComponent<Sectorassembly>().spaceForEachSector[1]
-                        newWall.tag = "Volumic Sol";
+                        //newWall.tag = "Volumic Wall";
                         try
                         {
                             switch (position)
@@ -1130,7 +1136,7 @@ namespace City
                         WallConstruct(i);
                         if (wallSucced) { wallSide[i] = true; }
                     }
-                    else if(need[i] && wallSide[i] == false)
+                    else if (need[i] && wallSide[i] == false)
                     {
                         WallConstruct(i);
                         if (wallSucced) { wallSide[i] = true; }
@@ -1153,21 +1159,21 @@ namespace City
                 }
             }
         }
-        
+
         private List<List<bool>> matrixConstructFloor(Quaternion dimension)
         {
             List<List<bool>> matrix = new List<List<bool>>();
-            for(int i = 0; i < dimension.z - dimension.x; i++)
+            for (int i = 0; i < dimension.z - dimension.x; i++)
             {
                 matrix.Add(new List<bool>());
-                for(int j = 0; j < dimension.w - dimension.y; j++)
+                for (int j = 0; j < dimension.w - dimension.y; j++)
                 {
                     matrix[i].Add(true);
                 }
             }
             return matrix;
         }
-    
+
         private bool testDePoseCubeAMatrice(int floor, Quaternion localPositionDimension)
         {
             //Quaternion localPositionDimension = localPositionFromGlobal(floor, globalePositionDimension);
@@ -1182,16 +1188,16 @@ namespace City
             return test;
         }
 
-        private void DePoseCubeAMatrice(int floor, Quaternion globalePositionDimension, bool local) 
+        private void DePoseCubeAMatrice(int floor, Quaternion globalePositionDimension, bool local)
         {
             //transform global position into local one usable by alone matrix
             Quaternion localPositionDimension = new Quaternion();
             if (local) { localPositionDimension = globalePositionDimension; }
             else { localPositionDimension = LocalPositionFromGlobal(floor, globalePositionDimension); }
 
-            for (int i=(int)localPositionDimension.x; i < localPositionDimension.x + localPositionDimension.z; i++)
+            for (int i = (int)localPositionDimension.x; i < localPositionDimension.x + localPositionDimension.z; i++)
             {
-                for(int j=(int)localPositionDimension.y; j < localPositionDimension.y + localPositionDimension.w; j++)
+                for (int j = (int)localPositionDimension.y; j < localPositionDimension.y + localPositionDimension.w; j++)
                 {
                     listMatrixConstructFloor[floor][i][j] = false;
                 }
@@ -1242,10 +1248,10 @@ namespace City
                     break;
                 case 2:
                     globalPositionDimension.x = localPositionDimension.x;
-                    globalPositionDimension.y = localPositionDimension.y + pointOrHaut.z+1;
+                    globalPositionDimension.y = localPositionDimension.y + pointOrHaut.z + 1;
                     break;
                 case 3:
-                    globalPositionDimension.x = localPositionDimension.x + pointOrHaut.x+1;
+                    globalPositionDimension.x = localPositionDimension.x + pointOrHaut.x + 1;
                     globalPositionDimension.y = localPositionDimension.y + pointOrBas.z;
                     break;
                 case 4:
@@ -1267,7 +1273,7 @@ namespace City
 
         public void Naming()
         {
-            foreach(TMP_Text text in listNameHolder)
+            foreach (TMP_Text text in listNameHolder)
             {
                 text.text = gameObject.name;
             }
@@ -1275,14 +1281,14 @@ namespace City
 
         public void AdaptSizeToSubDiv()
         {
-            if(resized == false)
+            if (resized == false)
             {
                 dimensionSector /= (int)Mathf.Pow(2, subdivision);
                 sizeSol = dimensionSector[0] * prefabPlanSol.transform.localScale.x;
                 resized = true;
 
                 minLengthLevel /= (int)Mathf.Pow(2, subdivision);
-                nbLevel /= (int)Mathf.Pow(2,subdivision);
+                nbLevel /= (int)Mathf.Pow(2, subdivision);
             }
         }
 
@@ -1292,7 +1298,7 @@ namespace City
             //set up the inner variables 
             int wallOffset = 0;
             if (fixWallSurrounding) { wallOffset = 1; }
-            wallHolder = transform.GetChild(1).gameObject;
+            wallHolder = transform.GetChild(2).gameObject;
             float cubeSolXSize = prefabPlanSol.transform.localScale.x;
             float cubeSolYSize = prefabPlanSol.transform.localScale.y;
 
@@ -1302,7 +1308,7 @@ namespace City
             //set up of the player sensor
             BoxCollider boxPIBIn = gameObject.AddComponent<BoxCollider>();
             boxPIBIn.isTrigger = true;
-            boxPIBIn.center = new Vector3((dimensionSector[0] + wallOffset) *  cubeSolXSize/ 2, dimensionSector[1]*cubeSolYSize, (dimensionSector[0]+ wallOffset) * cubeSolXSize / 2);
+            boxPIBIn.center = new Vector3((dimensionSector[0] + wallOffset) * cubeSolXSize / 2, dimensionSector[1] * cubeSolYSize, (dimensionSector[0] + wallOffset) * cubeSolXSize / 2);
             boxPIBIn.size = new((dimensionSector[0] + wallOffset) * cubeSolXSize, dimensionSector[1] * cubeSolYSize, (dimensionSector[0] + wallOffset) * cubeSolXSize);
             try { structureScript = gameObject.GetComponentInParent<Sectorassembly>(); } catch { }
         }
@@ -1370,7 +1376,7 @@ namespace City
                             batCoreReplace.transform.localPosition = Vector3.zero;
                             batCoreReplace.transform.name = "BatCore Holder";
                             batCoreHolder = batCoreReplace;
-                            if(transform.parent.GetComponent<Sectorassembly>().organisation == organizationType.City || transform.parent.GetComponent<Sectorassembly>().organisation == organizationType.StructureSingle)
+                            if (transform.parent.GetComponent<Sectorassembly>().organisation == organizationType.City || transform.parent.GetComponent<Sectorassembly>().organisation == organizationType.StructureSingle)
                             {
                                 bool isLiftStairsup = prefabHolder.transform.Find("ArrivéeLift").Find("AccesSector").GetChild(2).gameObject.activeSelf;
                                 prefabHolder.transform.Find("ArrivéeLift").Find("AccesSector").GetChild(2).gameObject.SetActive(isLiftStairsup);
@@ -1407,9 +1413,9 @@ namespace City
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.gameObject.transform.tag == "Player" && planMode) 
+            if (other.gameObject.transform.tag == "Player" && planMode)
             {
-                if(other.gameObject.GetComponent<Playermovment>().lineConnected == false)
+                if (other.gameObject.GetComponent<Playermovment>().lineConnected == false)
                 {
                     Construct();
                     try
@@ -1429,7 +1435,7 @@ namespace City
                 PIS = true;
                 insideSeen = true;
                 nonUpdated = true;
-            }   
+            }
         }
 
         private void OnTriggerExit(Collider other)

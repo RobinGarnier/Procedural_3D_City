@@ -75,7 +75,7 @@ public class SectorDistributor : MonoBehaviour
         }
 
         //warn the strucutre about the change
-        foreach(GameObject structure in listStrucutre)
+        foreach (GameObject structure in listStrucutre)
         {
             structure.GetComponent<Sectorassembly>().needArchiveupdate = true;
         }
@@ -97,7 +97,7 @@ public class SectorDistributor : MonoBehaviour
 
     private void Update()
     {
-        
+
     }
 
 
@@ -108,6 +108,8 @@ public class SectorDistributor : MonoBehaviour
         public string StructureDependency;
         public Vector3 structureCoordinate;
         public Vector3 requestSize;
+        public tagSect tag;
+        public string layerSector;
         public bool useSolConstruct = false;
 
         public SectorRequest(GameObject sectorPrefab, string structureDependency, Vector3 position, Vector3 size)
@@ -116,7 +118,22 @@ public class SectorDistributor : MonoBehaviour
             StructureDependency = structureDependency;
             structureCoordinate = position;
             requestSize = size;
-            if(sectorPrefab.GetComponent<SolConstruct>() != null)
+            tag = tagSect.Request;
+            layerSector = "Standard";
+            if (sectorPrefab.GetComponent<SolConstruct>() != null)
+            {
+                useSolConstruct = true;
+            }
+        }
+        public SectorRequest(GameObject sectorPrefab, string structureDependency, Vector3 position, Vector3 size, tagSect tagRequest, string layerRequest)
+        {
+            this.sectorPrefab = sectorPrefab;
+            StructureDependency = structureDependency;
+            structureCoordinate = position;
+            requestSize = size;
+            tag = tagRequest;
+            layerSector = layerRequest;
+            if (sectorPrefab.GetComponent<SolConstruct>() != null)
             {
                 useSolConstruct = true;
             }
@@ -124,11 +141,11 @@ public class SectorDistributor : MonoBehaviour
 
         public void CheckPosAndSize()
         {
-            while(structureCoordinate.x > Mathf.FloorToInt(Mathf.Abs(structureCoordinate.y + 1) / 4) + 1)
+            while (structureCoordinate.x > Mathf.FloorToInt(Mathf.Abs(structureCoordinate.y + 1) / 4) + 1)
             {
                 structureCoordinate.y -= 1;
             }
-            while(structureCoordinate.z > Mathf.FloorToInt(Mathf.Abs(structureCoordinate.y + 1) / 4) + 1)
+            while (structureCoordinate.z > Mathf.FloorToInt(Mathf.Abs(structureCoordinate.y + 1) / 4) + 1)
             {
                 structureCoordinate.y -= 1;
             }
@@ -140,12 +157,12 @@ public class SectorDistributor : MonoBehaviour
     {
         [Header("General")]
         public bool isComplex;
-        [Min(1)]public int spawnProbaDenom;
+        [Min(1)] public int spawnProbaDenom;
         public List<string> listStrucutrePresent;
 
         [Header("Simple Sector")]
         public GameObject sector;
-        [Range(0, 2)]public int deapthPosition;
+        [Range(0, 2)] public int deapthPosition;
         public bool useSolConstruct;
         public bool replaceDefaultForPerf;
         public tagSect tag;
@@ -154,7 +171,7 @@ public class SectorDistributor : MonoBehaviour
         public typeConstruct typeComplex;
         public GameObject constitution;
         public bool[] propagationDirection = { false, false, false };
-        public Vector3 sizeIntervals;
+        public Vector2[] sizeIntervals;
         public bool isAlone;
 
 
@@ -180,17 +197,19 @@ public class SectorDistributor : MonoBehaviour
             tag = tagSect.Standart;
         }
 
-        public enum tagSect
-        {
-            EmptySpace, 
-            Standart,
-        }
 
-        public enum typeConstruct
-        {
-            Rift,
-            Single,
-        }
+    }
+    public enum typeConstruct
+    {
+        Rift,
+        Single,
+        Request,
+    }
+    public enum tagSect
+    {
+        EmptySpace,
+        Standart,
+        Request,
     }
 }
 

@@ -71,7 +71,7 @@ namespace City
             bool sectorNeeded = true;
             bool useSolConstruct = true;
             bool isReplaceVersion = false;
-            string tagSector = "Standart";
+            SectorDistributor.tagSect tagSector = SectorDistributor.tagSect.Standart;
             string layerSector = "Standard";
             GameObject sectorOrder = sector;
 
@@ -107,6 +107,8 @@ namespace City
                     if (request.structureCoordinate == dimLocal)
                     {
                         sectorOrder = request.sectorPrefab;
+                        tagSector = request.tag;
+                        layerSector = request.layerSector;
                         useSolConstruct = request.useSolConstruct;
                         noSectorRequested = false;
                         break;
@@ -130,25 +132,31 @@ namespace City
                             sectorOrder = variation.sector;
                             useSolConstruct = variation.useSolConstruct;
                             isReplaceVersion = variation.replaceDefaultForPerf;
-                            tagSector = variation.tag.ToString();
+                            tagSector = variation.tag;
+
+                            //Create a Complex
                             if (variation.isComplex)
                             {
                                 sectorOrder = variation.constitution;
                                 layerSector = variation.typeComplex.ToString();
 
                                 //Define the needed space for the complex to be created
-                                float complexvalue = Random.Range(variation.sizeIntervals[0], variation.sizeIntervals[1]);
-                                bool propagateLinearX = variation.propagationDirection[0] ^ variation.propagationDirection[2] ? Random.Range(0,2)==0 : variation.propagationDirection[0];
+                                List<float> complexvalue = new List<float>();
+                                foreach (Vector2 intervalDirect in variation.sizeIntervals)
+                                {
+                                    complexvalue.Add(Random.Range(intervalDirect[0], intervalDirect[1]));
+                                }
+                                bool propagateLinearX = variation.propagationDirection[0] ^ variation.propagationDirection[2] ? Random.Range(0, 2) == 0 : variation.propagationDirection[0];
                                 bool propagateLinearZ = variation.propagationDirection[0] ^ variation.propagationDirection[2] ? !propagateLinearX : variation.propagationDirection[2];
 
 
-                                for (int x = 0;  (x < complexvalue && propagateLinearX) || (x<1 && !propagateLinearX); x++)
+                                for (int x = 0; (x < complexvalue[0] && propagateLinearX) || (x < 1 && !propagateLinearX); x++)
                                 {
-                                    for(int y = 0; (y < complexvalue && variation.propagationDirection[1]) || (y < 1 && !variation.propagationDirection[1]); y++)
+                                    for (int y = 0; (y < complexvalue[1] && variation.propagationDirection[1]) || (y < 1 && !variation.propagationDirection[1]); y++)
                                     {
-                                        for (int z = 0; (z < complexvalue && propagateLinearZ) || (z < 1 && !propagateLinearZ); z++)
+                                        for (int z = 0; (z < complexvalue[2] && propagateLinearZ) || (z < 1 && !propagateLinearZ); z++)
                                         {
-                                            transform.parent.GetComponent<SectorDistributor>().listRequest.Add(new SectorDistributor.SectorRequest(variation.constitution, letterDenomination, dimLocal + new Vector3(x, y, z), Vector3.zero));
+                                            transform.parent.GetComponent<SectorDistributor>().listRequest.Add(new SectorDistributor.SectorRequest(variation.constitution, letterDenomination, dimLocal + new Vector3(x, y, z), Vector3.zero, tagSector, layerSector));
                                         }
                                     }
                                 }
@@ -195,10 +203,10 @@ namespace City
                             CreateSector(dimLocal, divisionDeapth + 1, positionInDivision * 10 + i, subDivHolder);
                         }
 
-                        for (int i = 0; i < subDivHolder.transform.childCount; i++) 
+                        for (int i = 0; i < subDivHolder.transform.childCount; i++)
                         {
                             subDivScript.sectorList.Add(subDivHolder.transform.GetChild(i).gameObject);
-                        } 
+                        }
                     }
                     else
                     {
@@ -218,12 +226,12 @@ namespace City
                     //Construct the sector
                     GameObject sectorCreated = Instantiate(sectorOrder);
                     sectorCreated.name = SectorNameCoordViaDim(dimLocal, positionInDivision);
-                    sectorCreated.tag = tagSector;
+                    sectorCreated.tag = tagSector.ToString();
                     sectorCreated.layer = LayerMask.NameToLayer(layerSector);
                     SubDivisionHolder subDivScript = sectorCreated.GetComponent<SubDivisionHolder>();
                     subDivScript.subDivisionLevelIn = divisionDeapth;
                     subDivScript.sectorList.Add(sectorCreated);
-                    subDivScript.type = tagSector == "Empty Space" ? typeInHerarchy.sectorEmpty : typeInHerarchy.sectorFixed;
+                    subDivScript.type = tagSector == SectorDistributor.tagSect.EmptySpace ? typeInHerarchy.sectorEmpty : typeInHerarchy.sectorFixed;
 
                     //construction process via SolConstruct
                     if (useSolConstruct)
@@ -348,7 +356,7 @@ namespace City
             sectorConstructed = true;
 
             //Select existing Sector or create it
-            
+
 
             List<GameObject> listSectorThere = new List<GameObject>();
             listSectorThere = AllSectorFoundAtPosition(positionPlayerCoordinate() + coordAroundPlayer);
@@ -366,8 +374,8 @@ namespace City
                 pivotForSectorOrga.transform.SetAsFirstSibling();
 
                 SubDivisionHolder holderScript = elem.GetComponent<SubDivisionHolder>();
-                typeInHerarchy typeNeighbor =holderScript.type;
-                if(typeNeighbor == typeInHerarchy.sectorWithSolConstruct)
+                typeInHerarchy typeNeighbor = holderScript.type;
+                if (typeNeighbor == typeInHerarchy.sectorWithSolConstruct)
                 {
                     pivotForSectorOrga = elem;// listSectorThere[0];
                     SolConstruct sectorScript = pivotForSectorOrga.GetComponent<SolConstruct>();
@@ -502,7 +510,7 @@ namespace City
         public void EarlyCheckForComplexFromation(Vector3 sectorPosition, int sectorSubdivision = 0)
         {
             List<Vector3> suround = new List<Vector3> { new(1, 0, 0), new(-1, 0, 0), new(0, 0, 1), new(0, 0, -1), new(0, 1, 0), new(0, -1, 0) };
-            if(sectorSubdivision > 0)
+            if (sectorSubdivision > 0)
             {
                 for (int i = 0; i < suround.Count; i++)
                 {
@@ -517,7 +525,7 @@ namespace City
             {
 
             }
-            
+
         }
 
 
@@ -549,7 +557,7 @@ namespace City
                 positionPlayer = player[a].transform.position;
                 positionPlayerLocal = new(positionPlayer.x / spaceForEachSector[0], positionPlayer.y / spaceForEachSector[1], positionPlayer.z / spaceForEachSector[0]);
                 positionPlayerLocal -= new Vector3((int)positionPlayerLocal[0], (int)positionPlayerLocal[1], (int)positionPlayerLocal[2]);
-                if (Mathf.Abs(positionPlayerLocal[0] - lastPositionPlayer[a][0])>0.25 || Mathf.Abs(positionPlayerLocal[1] - lastPositionPlayer[a][1]) > 0.25 || Mathf.Abs(positionPlayerLocal[2] - lastPositionPlayer[a][2]) > 0.25 )
+                if (Mathf.Abs(positionPlayerLocal[0] - lastPositionPlayer[a][0]) > 0.25 || Mathf.Abs(positionPlayerLocal[1] - lastPositionPlayer[a][1]) > 0.25 || Mathf.Abs(positionPlayerLocal[2] - lastPositionPlayer[a][2]) > 0.25)
                 {
                     structureDisplayChanged[a] = true;
                     lastPositionPlayer[a] = positionPlayerLocal;
@@ -558,9 +566,9 @@ namespace City
                 else
                 {
                     structureDisplayChanged[a] = false;
-                    if(neighborsCheck)
+                    if (neighborsCheck)
                     {
-                        foreach(GameObject subDivHolderObj in listObjectActive)
+                        foreach (GameObject subDivHolderObj in listObjectActive)
                         {
                             subDivHolderObj.GetComponent<SubDivisionHolder>().UpdateNeighbors();
                         }
@@ -720,7 +728,7 @@ namespace City
         }
 
 
-        
+
 
     }
 

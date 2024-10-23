@@ -50,7 +50,7 @@ public class SubDivisionHolder : MonoBehaviour
         bool allFarNeighborsFound = true;
         foreach (GameObject farNeighbor in largeNeighborhood)
         {
-            if (farNeighbor != null) 
+            if (farNeighbor != null)
             {
                 if (neighbors == null)
                 {
@@ -64,14 +64,14 @@ public class SubDivisionHolder : MonoBehaviour
             coefForInvertedNeighbors *= -1;
         }
         if (updateNeighbors) { UpdateNeighbors(); }
-        if(allFarNeighborsFound) { notUpdated = false; }
+        if (allFarNeighborsFound) { notUpdated = false; }
 
         UpdateInNeighborForSubSector();
     }
 
     public void UpdateInNeighborForSubSector()
     {
-        if(type == typeInHerarchy.holder)
+        if (type == typeInHerarchy.holder)
         {
             //how to attribute each neighbor with the correct inSector (negativ for inner sector)
             int index = 0;
@@ -98,23 +98,23 @@ public class SubDivisionHolder : MonoBehaviour
                     }
                     else
                     {
-                        sectorInHolderScript.largeNeighborhood[i] = sectorList[ - (listDistribNieghborToInSector[index][i] + 1)]; // adapt the neighbor code to the list index
+                        sectorInHolderScript.largeNeighborhood[i] = sectorList[-(listDistribNieghborToInSector[index][i] + 1)]; // adapt the neighbor code to the list index
                     }
                 }
                 sectorInHolderScript.UpdateSelf();
-                index ++;
+                index++;
             }
         }
         else
         {
-            for(int i = 0; i < 6; i++)
+            for (int i = 0; i < 6; i++)
             {
-                if(largeNeighborhood[i] != null)
+                if (largeNeighborhood[i] != null)
                 {
                     neighbors[i] = NeighborFromSector(largeNeighborhood[i], i);
                 }
             }
-            try { if (type == typeInHerarchy.sectorWithSolConstruct) { gameObject.GetComponent<SolConstruct>().WallBuilding(); } } catch { }
+            try { if (type == typeInHerarchy.sectorWithSolConstruct) { gameObject.GetComponent<SolConstruct>().WallBuilding(true); } } catch { Debug.LogError("wallBuildFail"); }
         }
     }
 
@@ -126,21 +126,21 @@ public class SubDivisionHolder : MonoBehaviour
         {
             neighborsTypes = Neighbors.neighborsTypes.OpenSpace;
         }
-        else if(sector.tag == "EmptySpace" && positionAround<5)
+        else if (sector.tag == "EmptySpace" && positionAround < 5)
         {
             neighborsTypes = Neighbors.neighborsTypes.EmptySpace;
             if (transform.tag != "EmptySpace") { transform.tag = "OpenSpace"; }
         }
 
-        if(sector.GetComponent<SolConstruct>() != null)
+        if (sector.GetComponent<SolConstruct>() != null)
         {
-            if(neighborsTypes==Neighbors.neighborsTypes.None) { neighborsTypes = Neighbors.neighborsTypes.Standart; }
-            return new Neighbors(neighborsTypes, subDivisionLevelIn, sector.GetComponent<SolConstruct>(), positionAround);
+            if (neighborsTypes == Neighbors.neighborsTypes.None) { neighborsTypes = Neighbors.neighborsTypes.Standart; }
+            return new Neighbors(neighborsTypes, sector.GetComponent<SubDivisionHolder>().subDivisionLevelIn, sector.GetComponent<SolConstruct>(), positionAround);
         }
 
         else
         {
-            if(sector.GetComponent<SubDivisionHolder>().type == typeInHerarchy.holder)
+            if (sector.GetComponent<SubDivisionHolder>().type == typeInHerarchy.holder)
             {
                 neighborsTypes = Neighbors.neighborsTypes.Holder;
             }
@@ -153,7 +153,7 @@ public class SubDivisionHolder : MonoBehaviour
     public class Neighbors
     {
         public neighborsTypes type;
-        public int subdivision;
+        public int subdivision = 2;
         public bool useSolConstruct;
         public SolConstruct script;
         public int position;

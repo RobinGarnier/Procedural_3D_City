@@ -12,6 +12,7 @@ TagManager:
   - ground
   - OpenSpace
   - Standart
+  - Volumic Wall
   layers:
   - Default
   - TransparentFX
