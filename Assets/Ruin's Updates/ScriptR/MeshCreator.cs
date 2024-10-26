@@ -6,9 +6,8 @@ using System.Collections.Generic;
 // Simply, create a new Scene, add this script to the Main Camera, and run.  
 
 public class MeshCreator : MonoBehaviour
-{
-
-    GameObject cube;
+{ 
+    public GameObject cube;
     GameObject plan;
     [Header("Cube")]
     public Vector3 dimension;
@@ -18,9 +17,10 @@ public class MeshCreator : MonoBehaviour
     public bool hole = false;
     public Vector3 holeLoc;
     public Vector3 holescale;
-
-
-
+    [Header("Subdiv")]
+    public bool subdiv = false;
+    public Face faceName;
+    
 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance)
     {
@@ -144,6 +144,69 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
+    public void SubdivideFaceUsingEnum(Mesh mesh, Face faceName, Vector3 subdivision)
+    {
+        List<Vector3> verticesList = new List<Vector3>(mesh.vertices);
+        List<int> trianglesList = new List<int>(mesh.triangles);
+        Vector3[] cornerVertices = new Vector3[] {Vector3.zero, Vector3.zero, Vector3.zero, Vector3.zero };
+        Vector3 dimensionXYZ = Vector3.zero;
+        int subdivision1 = 0;
+        int subdivision2 = 0;
+
+        switch (faceName)
+        {
+            case Face.top : cornerVertices = new Vector3[]   //TOP
+            {
+                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
+                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+            }; subdivision1 = (int)subdivision.x; subdivision2 = (int)subdivision.z; break;
+
+            case Face.front: cornerVertices = new Vector3[]   //FRONT
+            {
+                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2)  // Top-left corner
+            }; subdivision1 = (int)subdivision.x; subdivision2 = (int)subdivision.y; break;
+
+            case Face.right: cornerVertices = new Vector3[]   //RIGHT
+                {
+                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2)  // Top-left corner
+                }; subdivision1 = (int)subdivision.z; subdivision2 = (int)subdivision.y; break;
+
+            case Face.back: cornerVertices = new Vector3[]   //BACK
+                {
+                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
+            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2)  // Top-left corner
+                }; subdivision1 = (int)subdivision.x; subdivision2 = (int)subdivision.y; break;
+
+            case Face.left: cornerVertices = new Vector3[]   //LEFT
+                {
+                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2)  // Top-left corner
+                }; subdivision1 = (int)subdivision.z; subdivision2 = (int)subdivision.y; break;
+
+            case Face.bot: cornerVertices = new Vector3[]   //BOT
+                {
+                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2)  // Top-left corner
+                }; subdivision1 = (int)subdivision.x; subdivision2 = (int)subdivision.z; break;
+        }
+
+        SubdivideFaceWithUniformTriangles(verticesList, trianglesList, cornerVertices[0], cornerVertices[1], cornerVertices[2], cornerVertices[3], subdivision1, subdivision2);
+    }
+
     public void CreateHoleInMesh(Mesh mesh, Vector3 holeCenter, Vector3 holeDimensions)
     {
         // Get the existing vertices and triangles from the mesh
@@ -229,5 +292,16 @@ public class MeshCreator : MonoBehaviour
     {
         if (create) { CreateUniformCube(dimension, VerticeSpace); create = false; }
         if(hole) { CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale); hole = false; }
+        if (subdiv) { SubdivideFaceUsingEnum(cube.GetComponent<MeshFilter>().mesh, faceName, new Vector3(Mathf.CeilToInt(dimension.x / VerticeSpace), Mathf.CeilToInt(dimension.y / VerticeSpace), Mathf.CeilToInt(dimension.z / VerticeSpace))); subdiv = false; }
+    }
+
+    public enum Face
+    {
+        top,
+        front,
+        right,
+        back,
+        left,
+        bot
     }
 }
