@@ -153,13 +153,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cube: {fileID: 0}
-  dimension: {x: 3, y: 3, z: 3}
-  VerticeSpace: 3
+  dimension: {x: 3, y: 2, z: 3}
+  verticeSpace: 1
   create: 1
   hole: 0
   holeLoc: {x: 0, y: 0, z: 0}
   holescale: {x: 1, y: 1, z: 5}
   subdiv: 0
+  subdivision: 10
   faceName: 0
 --- !u!4 &561152444
 Transform:
