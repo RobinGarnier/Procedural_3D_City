@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine.UIElements;
 
 // This Unity script demonstrates how to create a Mesh (in this case a Cube) purely through code.
 // Simply, create a new Scene, add this script to the Main Camera, and run.  
@@ -17,13 +19,15 @@ public class MeshCreator : MonoBehaviour
     public bool hole = false;
     public Vector3 holeLoc;
     public Vector3 holescale;
+    public Transform[] listPrefabAnchor;
     [Header("Subdiv")]
     public bool subdiv = false;
     public int subdivision = 1;
-    public Face faceName;
+    public Face[] faceNameList;
+    Face[] emptyfaceList = new Face[] { Face.none };
     
 
-    public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face subdivFace = Face.none, int subdiv = 0)
+    public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face[] subdivFace = null, int subdiv = 0)
     {
         // Calculate subdivisions per face based on the dimension and target vertice distance
         int subdivisionsX = Mathf.CeilToInt(dimensionXYZ.x / verticeDistance);  // Along the X axis
@@ -45,124 +49,166 @@ public class MeshCreator : MonoBehaviour
 
         // Subdivide each face of the cube into small, uniform triangles
         // Front face (along X, Y)
-        if (subdivFace == Face.front)
+        if(subdivFace == null)
         {
             SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
-            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
-            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
-            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-left corner
-            subdiv, subdiv);
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-left corner
+                    subdivisionsX, subdivisionsY);
+            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-left corner
+                    subdivisionsX, subdivisionsY);
+            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsZ, subdivisionsY);
+            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
+                    subdivisionsZ, subdivisionsY);
+            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsX, subdivisionsZ);
+            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsX, subdivisionsZ);
         }
         else
         {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            if (subdivFace.Contains(Face.front))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
                 new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
                 new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
                 new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
                 new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-left corner
-                subdivisionsX, subdivisionsY);
-        }
+                subdiv, subdiv);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-left corner
+                    subdivisionsX, subdivisionsY);
+            }
 
-        // Back face (along X, Y)
-        if (subdivFace == Face.back)
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-            new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
-            new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
-            new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
-            new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-left corner
-            subdiv, subdiv);
-        }
-        else
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+            // Back face (along X, Y)
+            if (subdivFace.Contains(Face.back))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
                 new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
                 new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
                 new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
                 new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-left corner
-                subdivisionsX, subdivisionsY);
-        }
-
-        // Left face (along Z, Y)
-        if (subdivFace == Face.left)
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
                 subdiv, subdiv);
-        }
-        else
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
-                subdivisionsZ, subdivisionsY);
-        }  // Subdivide left face (z, y axes)
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-left corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-left corner
+                    subdivisionsX, subdivisionsY);
+            }
 
-        // Right face (along Z, Y)
-        if (subdivFace == Face.right)
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
-                subdiv, subdiv);
-        }
-        else
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
-                subdivisionsZ, subdivisionsY);
-        }  // Subdivide right face (z, y axes)
+            // Left face (along Z, Y)
+            if (subdivFace.Contains(Face.left))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdiv, subdiv);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsZ, subdivisionsY);
+            }  // Subdivide left face (z, y axes)
 
-        // Top face (along X, Z)
-        if (subdivFace == Face.top)
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
-                subdiv, subdiv);
-        }
-        else
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
-                subdivisionsX, subdivisionsZ);
-        }  // Subdivide top face (x, z axes)
+            // Right face (along Z, Y)
+            if (subdivFace.Contains(Face.right))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
+                    subdiv, subdiv);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Top-left corner
+                    subdivisionsZ, subdivisionsY);
+            }  // Subdivide right face (z, y axes)
 
-        // Bottom face (along X, Z)
-        if (subdivFace == Face.bot)
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
-                subdiv, subdiv);
+            // Top face (along X, Z)
+            if (subdivFace.Contains(Face.top))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdiv, subdiv);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, dimensionXYZ.z / 2),    // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsX, subdivisionsZ);
+            }  // Subdivide top face (x, z axes)
+
+            // Bottom face (along X, Z)
+            if (subdivFace.Contains(Face.bot))
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
+                    subdiv, subdiv);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
+                    new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
+                    new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
+                    subdivisionsX, subdivisionsZ);
+            }  // Subdivide bottom face (x, z axes)
         }
-        else
-        {
-            SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2), // Bottom-left corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, -dimensionXYZ.z / 2),  // Bottom-right corner
-                new Vector3(dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),   // Top-right corner
-                new Vector3(-dimensionXYZ.x / 2, -dimensionXYZ.y / 2, dimensionXYZ.z / 2),  // Top-left corner
-                subdivisionsX, subdivisionsZ);
-        }  // Subdivide bottom face (x, z axes)
 
         // 8) Build the Mesh
         mesh.Clear();
@@ -259,30 +305,65 @@ public class MeshCreator : MonoBehaviour
         mesh.RecalculateNormals();  // Recalculate normals to ensure proper lighting
     }
 
-    public void SubdivideOneFaceOfExisitingCube(GameObject cube, Face faceName, int subdivision)
+    public void SubdivideOneFaceOfExisitingCube(GameObject cube, Face[] faceNameList, int subdivision)
     {
         Vector3 size = cube.GetComponent<MeshFilter>().mesh.bounds.size;
         int space = Mathf.CeilToInt(Mathf.Sqrt(cube.GetComponent<MeshFilter>().mesh.vertices.Length / 4));
         Vector3 location = cube.transform.position;
 
         Destroy(cube);
-        CreateUniformCube(size, space, faceName, subdivision);
+        CreateUniformCube(size, space, faceNameList, subdivision);
 
         cube.transform.position = location;
     }
 
-    private bool IsPointInCube(Vector3 point, Vector3 holeCenter, Vector3 holeDimensions, float tolerence = 0.01f)
+    private bool IsPointInCube(Vector3 pointInWorld, Vector3 holeCenter, Vector3 holeDimensions, float tolerence = 0.01f)
     {
-        Vector3 localDim = point - holeCenter;
+        Vector3 localDim = pointInWorld - holeCenter;
         return Mathf.Abs(localDim.x) < holeDimensions.x/2 + tolerence && Mathf.Abs(localDim.y) < holeDimensions.y/2 + tolerence && Mathf.Abs(localDim.z) < holeDimensions.z/2 + tolerence;
+    }
+
+    public void FillTheCubeWithPrefabAnchors(GameObject cube, Transform[] PrefabAnchorListInWorld, bool alreadySubDiv = false)
+    {
+        Mesh cubeMesh = cube.GetComponent<MeshFilter>().mesh;
+        Vector3 cubePosition = cube.transform.position;
+        Vector3 cubeScale = cubeMesh.bounds.size;
+        foreach (Transform transformAnchor in PrefabAnchorListInWorld)
+        {
+            //center coordinate of all anchors to the center of the cube
+            //transformAnchor.position = localCoord ? transformAnchor.position : transformAnchor.position - cube.transform.position ;
+
+            //define the anchor as the 8 corners of its boundery
+            Vector3 position = transformAnchor.position;
+            Vector3 scale = transformAnchor.localScale;
+            Vector3[] listVerticeOfAnchor = new Vector3[] { 
+                position + new Vector3(scale.x, -scale.y, scale.z),
+                position + new Vector3(-scale.x, -scale.y, scale.z),
+                position + new Vector3(-scale.x, -scale.y, -scale.z),//
+                position + new Vector3(scale.x, -scale.y, -scale.z),
+                position + new Vector3(scale.x, scale.y, scale.z),//
+                position + new Vector3(-scale.x, scale.y, scale.z),
+                position + new Vector3(-scale.x, scale.y, -scale.z),
+                position + new Vector3(scale.x, scale.y, -scale.z)
+            };
+            //Check if the anchor intersect with the cube surface by checking two diagonal corners
+            if(IsPointInCube(listVerticeOfAnchor[2], position, scale) ^ IsPointInCube(listVerticeOfAnchor[4], position, scale))
+            {
+                CreateHoleInMesh(cubeMesh, position, scale);
+            }
+        }
     }
 
     // Update is called once per frame
     private void Update()
     {
         if (create) { CreateUniformCube(dimension, verticeSpace); create = false; }
-        if(hole) { CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale); hole = false; }
-        if (subdiv) { SubdivideOneFaceOfExisitingCube(cube, faceName, subdivision); subdiv = false; }
+        if(hole) 
+        {
+            //CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale);
+            FillTheCubeWithPrefabAnchors(cube, listPrefabAnchor);
+            hole = false; }
+        if (subdiv) { SubdivideOneFaceOfExisitingCube(cube, faceNameList, subdivision); subdiv = false; }
     }
 
     public enum Face
