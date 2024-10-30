@@ -48,7 +48,6 @@ public class MeshCreator : MonoBehaviour
         List<Vector2> uvsList = new List<Vector2>();
 
         // Subdivide each face of the cube into small, uniform triangles
-        // Front face (along X, Y)
         if(subdivFace == null)
         {
             SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
@@ -90,6 +89,7 @@ public class MeshCreator : MonoBehaviour
         }
         else
         {
+            // Front face (along X, Y)
             if (subdivFace.Contains(Face.front))
             {
                 SubdivideFaceWithUniformTriangles(verticesList, trianglesList,
@@ -337,7 +337,7 @@ public class MeshCreator : MonoBehaviour
             Vector3 position = transformAnchor.position;
             Vector3 scale = transformAnchor.localScale;
             Vector3[] listVerticeOfAnchor = new Vector3[] { 
-                position + new Vector3(scale.x, -scale.y, scale.z),
+                position + new Vector3(scale.x, -scale.y, scale.z),//
                 position + new Vector3(-scale.x, -scale.y, scale.z),
                 position + new Vector3(-scale.x, -scale.y, -scale.z),//
                 position + new Vector3(scale.x, -scale.y, -scale.z),
@@ -345,11 +345,66 @@ public class MeshCreator : MonoBehaviour
                 position + new Vector3(-scale.x, scale.y, scale.z),
                 position + new Vector3(-scale.x, scale.y, -scale.z),
                 position + new Vector3(scale.x, scale.y, -scale.z)
+
+//  4 _______7   Anchor 's vertices
+//   |\5_____\6
+//   | |   | |
+//   |_|___| | 3
+//  0 \|____\| 
+//     1     2      x  y
+//                z _\|
+
             };
             //Check if the anchor intersect with the cube surface by checking two diagonal corners
-            if(IsPointInCube(listVerticeOfAnchor[2], position, scale) ^ IsPointInCube(listVerticeOfAnchor[4], position, scale))
+            //if(IsPointInCube(listVerticeOfAnchor[2], position, scale) ^ IsPointInCube(listVerticeOfAnchor[4], position, scale)) { CreateHoleInMesh(cubeMesh, position, scale); }
+            List<int[]> refIndexForCornerCheck = new List<int[]>() { 
+                new int[] { 1, 4, 3 },  
+                new int[] { 0, 5, 2 }, 
+                new int[] { 3, 6, 1 },  
+                new int[] { 2, 7, 0 },  
+                new int[] { 5, 0, 7 },  
+                new int[] { 4, 1, 6 },  
+                new int[] { 7, 2, 5 },  
+                new int[] { 6, 3, 4 }, 
+            };
+            List<Face[]> refFaceForCornerCheck = new List<Face[]>()
             {
-                CreateHoleInMesh(cubeMesh, position, scale);
+                new Face[] {Face.front, Face.top, Face.right},
+                new Face[] {Face.back, Face.top, Face.right},
+                new Face[] {Face.back, Face.top, Face.left},
+                new Face[] {Face.front, Face.top, Face.left},
+                new Face[] {Face.front, Face.bot, Face.right},
+                new Face[] {Face.back, Face.bot, Face.left},
+                new Face[] {Face.back, Face.bot, Face.left},
+                new Face[] {Face.front, Face.bot, Face.right},
+
+            };
+            List<Face> facesToSubdiv = new List<Face>();
+            int indexCorner = 0;
+            bool areCollidingAnchors = false;
+            foreach (Vector3 vertice in listVerticeOfAnchor)
+            {
+                if(IsPointInCube(vertice, cubePosition, cubeScale))
+                {
+                    int indexFace = 0;
+                    foreach (int corner in refIndexForCornerCheck[indexCorner])
+                    {
+                        if (IsPointInCube(listVerticeOfAnchor[corner], cubePosition, cubeScale)!)
+                        {
+                            facesToSubdiv.Add(refFaceForCornerCheck[indexCorner][indexFace]);
+                            areCollidingAnchors = true;
+                        }
+                        indexFace++;
+                    }
+                    break;
+                }
+                indexCorner++;
+            }
+
+            if (areCollidingAnchors) 
+            { 
+                SubdivideOneFaceOfExisitingCube(cube, facesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5); 
+                CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, position, scale); 
             }
         }
     }
