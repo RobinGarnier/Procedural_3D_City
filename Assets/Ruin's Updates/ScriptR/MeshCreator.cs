@@ -290,7 +290,7 @@ public class MeshCreator : MonoBehaviour
         // Create new lists to hold the modified mesh data
         List<Vector3> newVertices = new List<Vector3>(vertices);
         List<int> newTriangles = new List<int>();
-
+        Debug.Log($"original tri number : ${triangles.Length}");
         // Iterate through the triangles
         for (int i = 0; i < triangles.Length; i += 3)
         {
@@ -316,6 +316,7 @@ public class MeshCreator : MonoBehaviour
             }
             // Otherwise, we skip this triangle, which removes it from the mesh
         }
+        Debug.Log($"new tri number : ${newTriangles.Count}");
 
         // Update the mesh with the new vertices and triangles
         mesh.Clear();
@@ -343,10 +344,10 @@ public class MeshCreator : MonoBehaviour
         return Mathf.Abs(localDim.x) < holeDimensions.x/2 + tolerence && Mathf.Abs(localDim.y) < holeDimensions.y/2 + tolerence && Mathf.Abs(localDim.z) < holeDimensions.z/2 + tolerence;
     }
 
-    public void FillTheCubeWithPrefabAnchors(GameObject cube, Transform[] PrefabAnchorListInWorld, bool alreadySubDiv = false)
+    public void FillTheCubeWithPrefabAnchors(GameObject cubeToBore, Transform[] PrefabAnchorListInWorld, bool alreadySubDiv = false)
     {
-        Mesh cubeMesh = cube.GetComponent<MeshFilter>().mesh;
-        Vector3 cubePosition = cube.transform.position;
+        Mesh cubeMesh = cubeToBore.GetComponent<MeshFilter>().mesh;
+        Vector3 cubePosition = cubeToBore.transform.position;
         Vector3 cubeScale = cubeMesh.bounds.size;
         foreach (Transform transformAnchor in PrefabAnchorListInWorld)
         {
@@ -416,7 +417,7 @@ public class MeshCreator : MonoBehaviour
 
             if (areCollidingAnchors) 
             { 
-                SubdivideOneFaceOfExisitingCube(cube, facesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5); 
+                SubdivideOneFaceOfExisitingCube(cubeToBore, facesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5);
                 CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, position, scale); 
             }
         }
