@@ -281,7 +281,7 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
-    public void CreateHoleInMesh(Mesh mesh, Vector3 holeCenter, Vector3 holeDimensions)
+    /*public void CreateHoleInMesh(Mesh mesh, Vector3 holeCenter, Vector3 holeDimensions)
     {
         // Get the existing vertices and triangles from the mesh
         Vector3[] vertices = mesh.vertices;
@@ -316,7 +316,72 @@ public class MeshCreator : MonoBehaviour
             }
             // Otherwise, we skip this triangle, which removes it from the mesh
         }
-        Debug.Log($"new tri number : ${newTriangles.Count}");
+        //Debug.Log($"new tri number : ${newTriangles.Count}");
+
+        // Update the mesh with the new vertices and triangles
+        mesh.Clear();
+        mesh.vertices = newVertices.ToArray();
+        mesh.triangles = newTriangles.ToArray();
+        mesh.RecalculateNormals();  // Recalculate normals to ensure proper lighting
+    }*/
+
+    public void CreateHoleInMesh(Mesh mesh, Transform[] listHoleTransform)
+    {
+        // Get the existing vertices and triangles from the mesh
+        Vector3[] vertices = mesh.vertices;
+        int[] triangles = mesh.triangles;
+
+        List<Vector3> listHolePosition = new List<Vector3>();
+        List<Vector3> listHoleScale = new List<Vector3>();
+        foreach (Transform t in listHoleTransform)
+        {
+            listHolePosition.Add(t.position);
+            listHoleScale.Add(t.localScale);
+        }
+
+        Vector3[] arrayHolePosition = listHolePosition.ToArray();
+        Vector3[] arrayHoleScale = listHoleScale.ToArray();
+
+        // Create new lists to hold the modified mesh data
+        List<Vector3> newVertices = new List<Vector3>(vertices);
+        List<int> newTriangles = new List<int>();
+        //Debug.Log($"original tri number : ${triangles.Length}");
+        // Iterate through the triangles
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            // Get the vertex indices for the current triangle
+            int v0 = triangles[i];
+            int v1 = triangles[i + 1];
+            int v2 = triangles[i + 2];
+
+            // Get the actual vertex positions
+            Vector3 p0 = vertices[v0];
+            Vector3 p1 = vertices[v1];
+            Vector3 p2 = vertices[v2];
+
+            // Check if this triangle intersects the hole
+            bool collidingTriangle = false;
+            for (int j = 0; j < listHoleTransform.Length; j++)
+            {
+                Vector3 holeCenter = arrayHolePosition[j];
+                Vector3 holeDimensions = arrayHoleScale[j];
+                if (IsPointInCube(p0, holeCenter, holeDimensions) &&
+                IsPointInCube(p1, holeCenter, holeDimensions) &&
+                IsPointInCube(p2, holeCenter, holeDimensions))
+                {
+                    collidingTriangle = true;
+                }
+            }
+            if (!collidingTriangle)
+            {
+                // If the triangle is not in the hole, add it to the new triangle list
+                newTriangles.Add(v0);
+                newTriangles.Add(v1);
+                newTriangles.Add(v2);
+            }
+            // Otherwise, we skip this triangle, which removes it from the mesh
+        }
+        //Debug.Log($"new tri number : ${newTriangles.Count}");
 
         // Update the mesh with the new vertices and triangles
         mesh.Clear();
@@ -325,13 +390,13 @@ public class MeshCreator : MonoBehaviour
         mesh.RecalculateNormals();  // Recalculate normals to ensure proper lighting
     }
 
-    public void SubdivideOneFaceOfExisitingCube(GameObject cube, Face[] faceNameList, int subdivision)
+    public void SubdivideFacesOfExisitingCube(GameObject cubeToSubdiv, Face[] faceNameList, int subdivision)
     {
-        Vector3 size = cube.GetComponent<MeshFilter>().mesh.bounds.size;
-        int space = Mathf.CeilToInt(Mathf.Sqrt(cube.GetComponent<MeshFilter>().mesh.vertices.Length / 4));
-        Vector3 location = cube.transform.position;
+        Vector3 size = cubeToSubdiv.GetComponent<MeshFilter>().mesh.bounds.size;
+        int space = Mathf.CeilToInt(Mathf.Sqrt(cubeToSubdiv.GetComponent<MeshFilter>().mesh.vertices.Length / 4));
+        Vector3 location = cubeToSubdiv.transform.position;
 
-        Destroy(cube);
+        Destroy(cubeToSubdiv);
         CreateUniformCube(size, space, faceNameList, subdivision);
 
         cube.transform.position = location;
@@ -349,6 +414,11 @@ public class MeshCreator : MonoBehaviour
         Mesh cubeMesh = cubeToBore.GetComponent<MeshFilter>().mesh;
         Vector3 cubePosition = cubeToBore.transform.position;
         Vector3 cubeScale = cubeMesh.bounds.size;
+
+        List<Face> finalFacesToSubdiv = new List<Face>();
+        List<Transform> listCollidingAnchors = new List<Transform>();
+        bool needHole = false;
+
         foreach (Transform transformAnchor in PrefabAnchorListInWorld)
         {
             //center coordinate of all anchors to the center of the cube
@@ -415,11 +485,25 @@ public class MeshCreator : MonoBehaviour
                 indexCorner++;
             }
 
-            if (areCollidingAnchors) 
-            { 
-                SubdivideOneFaceOfExisitingCube(cubeToBore, facesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5);
-                CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, position, scale); 
+            foreach (Face face in facesToSubdiv)
+            {
+                if (!finalFacesToSubdiv.Contains(face))
+                {
+                    finalFacesToSubdiv.Add(face);
+                }
             }
+            if (areCollidingAnchors) { needHole = true; listCollidingAnchors.Add(transformAnchor); }
+            /*if (areCollidingAnchors) 
+            { 
+                SubdivideFacesOfExisitingCube(cube, facesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5);
+                CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, position, scale); 
+            }*/
+        }
+
+        if (needHole)
+        {
+            SubdivideFacesOfExisitingCube(cube, finalFacesToSubdiv.ToArray(), (int)Mathf.Max(cubeScale.x, cubeScale.y, cubeScale.z) * 5);
+            CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, listCollidingAnchors.ToArray());
         }
     }
 
@@ -432,7 +516,7 @@ public class MeshCreator : MonoBehaviour
             //CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale);
             FillTheCubeWithPrefabAnchors(cube, listPrefabAnchor);
             hole = false; }
-        if (subdiv) { SubdivideOneFaceOfExisitingCube(cube, faceNameList, subdivision); subdiv = false; }
+        if (subdiv) { SubdivideFacesOfExisitingCube(cube, faceNameList, subdivision); subdiv = false; }
     }
 
     public enum Face
