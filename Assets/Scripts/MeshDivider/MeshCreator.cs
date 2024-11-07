@@ -228,6 +228,7 @@ public class MeshCreator : MonoBehaviour
         mesh.triangles = trianglesList.ToArray();
         mesh.RecalculateNormals();
         mesh.uv = uvsList.ToArray();
+        if(dimensionXYZ == Vector3.one && subdivFace == null) { mesh.name = "Cube"; }
         //mesh.Optimize();
 
         // 9) Give it a Material
