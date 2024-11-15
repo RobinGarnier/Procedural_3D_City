@@ -152,9 +152,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6323d4ef1315094ba7a7a438c0528b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anchor: {fileID: 1590363246}
-  anchorUsed: 0
-  stepHeight: 0.3
+  stairArchitectList:
+  - anchor: {fileID: 0}
+    type: 1
+    totalSubStairNumber: 1
 --- !u!4 &368931782
 Transform:
   m_ObjectHideFlags: 0
@@ -439,7 +440,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 10.92, y: 0, z: -13.47}
-  m_LocalScale: {x: 5, y: 5, z: 4}
+  m_LocalScale: {x: 5, y: 20, z: 4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
