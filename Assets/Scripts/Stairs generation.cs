@@ -20,7 +20,7 @@ public class Stairsgeneration : MonoBehaviour
         {
             GameObject step = GameObject.CreatePrimitive(PrimitiveType.Cube);
             step.transform.localScale = stairOrder.stepDimension;
-            if (stairOrder.hoverStep!) { step.transform.localScale += i * new Vector3(0, stairOrder.stepDimension.y, 0); }
+            /*if (stairOrder.hoverStep!) {*/ step.transform.localScale += i * new Vector3(0, stairOrder.stepDimension.y, 0); //}
             step.transform.position = bottomStep + i * new Vector3(stairOrder.stepDimension.x, stairOrder.stepDimension.y, 0) - new Vector3(0, step.transform.localScale.y/2 - stairOrder.stepDimension.y, 0);
 
             stepMeshFilter[i] = step.GetComponent<MeshFilter>();
@@ -48,6 +48,9 @@ public class Stairsgeneration : MonoBehaviour
     public void SubdivideStairs(StairArchitect stairArchi)
     {
         List<SimpleStair> stairsList = stairArchi.GetStairList();
+
+        float bottomPositionOfAnchor(Transform anchor) => anchor.position.y - anchor.localScale.y / 2;
+
         switch (stairArchi.type)
         {
             case StairType.straight:
@@ -69,7 +72,15 @@ public class Stairsgeneration : MonoBehaviour
                     simpleStairAnchor.transform.localScale = new Vector3(stairArchi.anchor.localScale.x, stairArchi.anchor.localScale.y / stairArchi.totalSubStairNumber, stairArchi.anchor.localScale.z / stairArchi.totalSubStairNumber);
                     simpleStairAnchor.transform.position = stairArchi.anchor.position + (i - (stairArchi.totalSubStairNumber - 1) / 2) * new Vector3(0, simpleStairAnchor.transform.localScale.y, simpleStairAnchor.transform.localScale.z);
                     simpleStairAnchor.transform.localEulerAngles = new Vector3(0, i * 180, 0);
+
+                    GameObject stairBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    stairBase.transform.localScale = simpleStairAnchor.transform.localScale;
+                    stairBase.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.x, bottomPositionOfAnchor(simpleStairAnchor.transform) - bottomPositionOfAnchor(stairArchi.anchor), simpleStairAnchor.transform.localScale.z);
+                    stairBase.transform.position = simpleStairAnchor.transform.position;
+                    stairBase.transform.position -= new Vector3(0, simpleStairAnchor.transform.localScale.y/2 + stairBase.transform.localScale.y/2, 0);
+
                     stairsList.Add(new SimpleStair(simpleStairAnchor.transform));
+                    //stairsList.Add(new SimpleStair(stairBase.transform, stairBase.transform.localScale.y));
                 }
                 break;
         }

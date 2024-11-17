@@ -152,10 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6323d4ef1315094ba7a7a438c0528b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stairArchitectList:
-  - anchor: {fileID: 0}
-    type: 1
-    totalSubStairNumber: 1
+  stairArchitectList: []
 --- !u!4 &368931782
 Transform:
   m_ObjectHideFlags: 0
