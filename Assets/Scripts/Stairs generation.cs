@@ -5,13 +5,11 @@ using UnityEngine;
 
 public class Stairsgeneration : MonoBehaviour
 {
-    Transform anchor;
 
     SimpleStair stairOrder;
-    SimpleStair stairOrderArchive;
     public List<StairArchitect> stairArchitectList;
 
-    public void GenerateStairs()
+    public GameObject GenerateStairs(SimpleStair stairOrder)
     {
         Vector3 bottomStep = - new Vector3(stairOrder.anchor.localScale.x / 2, stairOrder.anchor.localScale.y / 2, 0) + new Vector3(stairOrder.stepDimension.x/2, 0, 0);
         MeshFilter[] stepMeshFilter = new MeshFilter[stairOrder.numberOfStep];
@@ -43,11 +41,15 @@ public class Stairsgeneration : MonoBehaviour
 
         staircase.transform.position = stairOrder.anchor.position;
         staircase.transform.localRotation = stairOrder.anchor.localRotation;
+
+        return staircase;
     }
 
     public void SubdivideStairs(StairArchitect stairArchi)
     {
         List<SimpleStair> stairsList = stairArchi.GetStairList();
+        List<GameObject> staircaseSubElement = new List<GameObject>();
+        List<GameObject> otherConstructorObj = new List<GameObject>();
 
         float bottomPositionOfAnchor(Transform anchor) => anchor.position.y - anchor.localScale.y / 2;
 
@@ -74,6 +76,9 @@ public class Stairsgeneration : MonoBehaviour
                     floorBase.transform.position = simpleStairAnchor.transform.position + new Vector3(0, 0, simpleStairAnchor.transform.localScale.z);
 
                     stairsList.Add(new SimpleStair(simpleStairAnchor.transform));
+                    staircaseSubElement.Add(stairBase);
+                    staircaseSubElement.Add(floorBase);
+                    otherConstructorObj.Add(simpleStairAnchor);
                 }
                 break;
             case StairType.V_Shape:
@@ -85,22 +90,43 @@ public class Stairsgeneration : MonoBehaviour
                     simpleStairAnchor.transform.localEulerAngles = new Vector3(0, i * 180, 0);
 
                     GameObject stairBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    stairBase.transform.localScale = simpleStairAnchor.transform.localScale;
+                    //stairBase.transform.localScale = simpleStairAnchor.transform.localScale;
                     stairBase.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.x, bottomPositionOfAnchor(simpleStairAnchor.transform) - bottomPositionOfAnchor(stairArchi.anchor), simpleStairAnchor.transform.localScale.z);
                     stairBase.transform.position = simpleStairAnchor.transform.position;
                     stairBase.transform.position -= new Vector3(0, simpleStairAnchor.transform.localScale.y/2 + stairBase.transform.localScale.y/2, 0);
 
                     stairsList.Add(new SimpleStair(simpleStairAnchor.transform));
-                    //stairsList.Add(new SimpleStair(stairBase.transform, stairBase.transform.localScale.y));
+                    staircaseSubElement.Add(stairBase);
+                    otherConstructorObj.Add(simpleStairAnchor);
                 }
                 break;
         }
 
         foreach (SimpleStair stair in stairsList)
         {
-            stairOrder = stair;
-            GenerateStairs();
+            staircaseSubElement.Add(GenerateStairs(stair));
         }
+
+        CombineInstance[] combine = new CombineInstance[staircaseSubElement.Count];
+        for (int i = 0; i < staircaseSubElement.Count; i++)
+        {
+            staircaseSubElement[i].transform.position -= stairArchi.anchor.position;
+            combine[i].mesh = staircaseSubElement[i].GetComponent<MeshFilter>().sharedMesh;
+            combine[i].transform = staircaseSubElement[i].transform.localToWorldMatrix;
+            if (Application.isPlaying) { Destroy(staircaseSubElement[i]); } else { DestroyImmediate(staircaseSubElement[i]); }
+        }
+
+        GameObject staircase = new GameObject("Staircase");
+        MeshFilter meshFilter = staircase.AddComponent<MeshFilter>();
+        meshFilter.mesh = new Mesh();
+        meshFilter.mesh.CombineMeshes(combine);
+
+        staircase.AddComponent<MeshRenderer>().material = staircaseSubElement[0].GetComponent<MeshFilter>().GetComponent<Renderer>().material;
+
+        staircase.transform.position = stairArchi.anchor.position;
+        staircase.transform.localRotation = stairArchi.anchor.localRotation;
+
+        foreach(GameObject obj in otherConstructorObj) { if (Application.isPlaying) { Destroy(obj); } else { DestroyImmediate(obj); } }
     }
 
     private Vector3 stepStandartDimension = new Vector3(0.3f, 0.2f, 1);
@@ -115,7 +141,7 @@ public class Stairsgeneration : MonoBehaviour
     }
 
     [Button("Add a StairObject")]
-    public void AddStairArchitect(StairType type = StairType.toDefine, int totalSubStairNumber = 1)
+    public void AddStairArchitect(StairType type = StairType.V_Shape, int totalSubStairNumber = 3)
     {
         // Create a new GameObject to act as the anchor with a BoxCollider
         GameObject anchorObj = new GameObject("StairAnchor");
