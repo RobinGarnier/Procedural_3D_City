@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
+using Parabox.CSG;
 
 // This Unity script demonstrates how to create a Mesh (in this case a Cube) purely through code.
 // Simply, create a new Scene, add this script to the Main Camera, and run.  
@@ -517,7 +518,15 @@ public class MeshCreator : MonoBehaviour
         {
             //CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale);
             //FillTheCubeWithPrefabAnchors(cube, listPrefabAnchor);
-            meshToBore.mesh = BooleanDifference(meshToBore.mesh, holeAnchor);
+
+            //meshToBore.mesh = BooleanDifference(meshToBore.mesh, holeAnchor);
+            Model result = CSG.Subtract(meshToBore.gameObject, holeAnchor.gameObject);
+
+            // Create a gameObject to render the result
+            var composite = new GameObject();
+            composite.AddComponent<MeshFilter>().sharedMesh = result.mesh;
+            composite.AddComponent<MeshRenderer>().sharedMaterials = result.materials.ToArray();
+
             hole = false; }
         if (subdiv) { SubdivideFacesOfExisitingCube(cube, faceNameList, subdivision); subdiv = false; }
     }
