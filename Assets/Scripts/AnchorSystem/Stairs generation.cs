@@ -5,10 +5,86 @@ using UnityEngine;
 
 public class Stairsgeneration : MonoBehaviour
 {
-
-    SimpleStair stairOrder;
     public List<StairArchitect> stairArchitectList;
 
+    [System.Serializable]
+    public class SimpleStair
+    {
+        [Header("Anchor")]
+        public Transform anchor;
+
+        [Header("Step specification")]
+        public Vector3 stepDimension;
+        public int numberOfStep;
+        public bool hoverStep;
+
+        public SimpleStair(Transform anchor, float stepHeight = 0.2f, bool hoverStep = false)
+        {
+            this.anchor = anchor;
+
+
+            numberOfStep = Mathf.CeilToInt(anchor.localScale.y / stepHeight);
+            stepDimension = new Vector3(anchor.localScale.x / numberOfStep, stepHeight, anchor.localScale.z);
+            this.hoverStep = hoverStep;
+        }
+    }
+
+    //Stair Anchor Definition :
+    //      topStep
+    //    ___\___   Stair Anchor    ______
+    //   |\ ______\                |\_____\
+    //   | |    | |                ||_____|
+    //   |_|____| |         ->     \ \_____\
+    //    \|_____\|                 \|_____|
+    //        \              x y
+    //        bottomStep   z _\|
+
+    [System.Serializable]
+    public class StairArchitect
+    {
+        [Header("Anchor")]
+        public Transform anchor;
+        public StairType type;
+        bool anchorUsed;
+
+        [Header("Constituing Stairs")]
+        List<SimpleStair> stairsList;
+        public int totalSubStairNumber;
+        Vector3 stepDimension;
+
+        public enum StairType
+        {
+            toDefine,
+            straight,
+            O_Shape,
+            V_Shape,
+            Z_Shape
+        }
+
+        //Default Settings for " stairArchitect " creation
+        public StairArchitect(Transform anchor)
+        {
+            this.anchor = anchor;
+            type = StairType.toDefine;
+            stairsList = new List<SimpleStair>();
+            stepDimension = new Vector3(0.3f, 0.2f, 1);
+        }
+        //Specific creation
+        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1)
+        {
+            this.anchor = anchor;
+            this.type = type;
+            this.totalSubStairNumber = totalSubStairNumber;
+            stepDimension = new Vector3(0.3f, 0.2f, anchor.localScale.z);
+            stairsList = new List<SimpleStair>();
+        }
+
+        //Getter
+        public List<SimpleStair> GetStairList() => stairsList;
+    }
+
+
+    //From SimpleStair to a real stair in the scene
     public GameObject GenerateStairs(SimpleStair stairOrder)
     {
         Vector3 bottomStep = - new Vector3(stairOrder.anchor.localScale.x / 2, stairOrder.anchor.localScale.y / 2, 0) + new Vector3(stairOrder.stepDimension.x/2, 0, 0);
@@ -44,8 +120,8 @@ public class Stairsgeneration : MonoBehaviour
 
         return staircase;
     }
-
-    public void SubdivideStairs(StairArchitect stairArchi)
+    //Fills stairArchi's stairList
+    public void SubdivideStairs(StairArchitect stairArchi, bool destroySubElement = true)
     {
         List<SimpleStair> stairsList = stairArchi.GetStairList();
         List<GameObject> staircaseSubElement = new List<GameObject>();
@@ -113,7 +189,7 @@ public class Stairsgeneration : MonoBehaviour
             staircaseSubElement[i].transform.position -= stairArchi.anchor.position;
             combine[i].mesh = staircaseSubElement[i].GetComponent<MeshFilter>().sharedMesh;
             combine[i].transform = staircaseSubElement[i].transform.localToWorldMatrix;
-            if (Application.isPlaying) { Destroy(staircaseSubElement[i]); } else { DestroyImmediate(staircaseSubElement[i]); }
+            if (destroySubElement) { Destroy(staircaseSubElement[i]); } else { DestroyImmediate(staircaseSubElement[i]); }
         }
 
         GameObject staircase = new GameObject("Staircase");
@@ -129,112 +205,39 @@ public class Stairsgeneration : MonoBehaviour
         foreach(GameObject obj in otherConstructorObj) { if (Application.isPlaying) { Destroy(obj); } else { DestroyImmediate(obj); } }
     }
 
-    private Vector3 stepStandartDimension = new Vector3(0.3f, 0.2f, 1);
-
-    private void OnValidate()
+    [Button("Add a StairObject")]
+    public void AddStairArchitect(StairArchitect.StairType type = StairArchitect.StairType.V_Shape, int totalSubStairNumber = 3)
     {
-        // Automatically update each stair in `stairArchitectList` when changes occur in the Inspector
+        //Initialisation
+        GameObject anchorObj = new GameObject("StairAnchor");
+        anchorObj.transform.position = transform.position;
+        anchorObj.transform.localScale = new Vector3(3, 5, 3);
+
+        BoxCollider collider = anchorObj.AddComponent<BoxCollider>();
+        collider.size = new Vector3(1, 1, 1);
+
+        StairArchitect newStairArchi = new StairArchitect(anchorObj.transform, type, totalSubStairNumber);
+        stairArchitectList.Add(newStairArchi);
+
+        //Create the stair
+        SubdivideStairs(newStairArchi, false);
+    }
+
+
+    // For Inspector editing 
+    /*private void OnValidate()
+    {
         foreach (var stairArchi in stairArchitectList)
         {
             UpdateStaircase(stairArchi);
         }
     }
-
-    [Button("Add a StairObject")]
-    public void AddStairArchitect(StairType type = StairType.V_Shape, int totalSubStairNumber = 3)
-    {
-        // Create a new GameObject to act as the anchor with a BoxCollider
-        GameObject anchorObj = new GameObject("StairAnchor");
-        anchorObj.transform.position = transform.position;
-        anchorObj.transform.localScale = new Vector3(3, 5, 3);// Set default position
-        BoxCollider collider = anchorObj.AddComponent<BoxCollider>();
-
-        // Adjust collider size to match typical stair volume, you can customize this as needed
-        collider.size = new Vector3(1, 1, 1);
-
-        // Create a new StairArchitect linked to this anchor and add it to the list
-        StairArchitect newStairArchi = new StairArchitect(anchorObj.transform, type, totalSubStairNumber);
-        stairArchitectList.Add(newStairArchi);
-
-        // Generate initial stairs for this architect
-        SubdivideStairs(newStairArchi);
-    }
-
+    [Button("UpdateStair")]
     private void UpdateStaircase(StairArchitect stairArchi)
     {
         // Clear and regenerate the stair setup based on any changes
         SubdivideStairs(stairArchi);
-    }
-
-    [System.Serializable]
-    public class SimpleStair
-    {
-        [Header("General look")]
-        public Transform anchor;
-        //      topStep
-        //    ___\___   Stairs          ______
-        //   |\ ______\                |\_____\
-        //   | |    | |                ||_____|
-        //   |_|____| |         ->     \ \_____\
-        //    \|_____\|                 \|_____|
-        //        \              x y
-        //        bottomStep   z _\|
-
-        [Header("Step specification")]
-        public Vector3 stepDimension;
-        public int numberOfStep;
-        public bool hoverStep;
-
-        public SimpleStair(Transform anchor, float stepHeight = 0.2f, bool hoverStep = false)
-        {
-            this.anchor = anchor;
-
-
-            numberOfStep = Mathf.CeilToInt(anchor.localScale.y / stepHeight);
-            stepDimension = new Vector3(anchor.localScale.x / numberOfStep, stepHeight, anchor.localScale.z);
-            this.hoverStep = hoverStep;
-        }
-    }
-
-    [System.Serializable]
-    public class StairArchitect
-    {
-        public Transform anchor;
-        public StairType type;
-        bool anchorUsed;
-
-        List<SimpleStair> stairsList;
-
-        public int totalSubStairNumber;
-        Vector3 stepDimension;
-
-        public StairArchitect(Transform anchor)
-        {
-            //Default Settings
-            this.anchor = anchor;
-            type = StairType.toDefine;
-            stairsList = new List<SimpleStair>();
-            stepDimension = new Vector3(0.3f, 0.2f, 1);
-        }
-
-        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1)
-        {
-            this.anchor = anchor;
-            this.type = type;
-            this.totalSubStairNumber = totalSubStairNumber;
-            stepDimension = new Vector3(0.3f, 0.2f, anchor.localScale.z);
-            stairsList = new List<SimpleStair>();
-        }
-
-        public List<SimpleStair> GetStairList() => stairsList;
-    }
+    }*/
 }
-    public enum StairType
-    {
-        toDefine,
-        straight,
-        O_Shape,
-        V_Shape,
-        Z_Shape
-    }
+    
 

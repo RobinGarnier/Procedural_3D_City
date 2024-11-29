@@ -3,10 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
-using Parabox.CSG;
-
-// This Unity script demonstrates how to create a Mesh (in this case a Cube) purely through code.
-// Simply, create a new Scene, add this script to the Main Camera, and run.  
+using Parabox.CSG; 
 
 public class MeshCreator : MonoBehaviour
 { 
@@ -408,7 +405,6 @@ public class MeshCreator : MonoBehaviour
     private bool IsPointInCube(Vector3 pointInWorld, Vector3 holeCenter, Vector3 holeDimensions, float tolerence = 0.01f)
     {
         Vector3 localDim = pointInWorld - holeCenter;
-        //Debug.Log($"${Mathf.Abs(localDim.x) - holeDimensions.x/2 - tolerence}, ${Mathf.Abs(localDim.y) - holeDimensions.y / 2 - tolerence}, ${Mathf.Abs(localDim.z) - holeDimensions.z / 2 - tolerence}");
         return Mathf.Abs(localDim.x) < holeDimensions.x/2 + tolerence && Mathf.Abs(localDim.y) < holeDimensions.y/2 + tolerence && Mathf.Abs(localDim.z) < holeDimensions.z/2 + tolerence;
     }
 
@@ -516,10 +512,6 @@ public class MeshCreator : MonoBehaviour
         if (create) { CreateUniformCube(dimension, verticeSpace); create = false; }
         if(hole) 
         {
-            //CreateHoleInMesh(cube.GetComponent<MeshFilter>().mesh, holeLoc, holescale);
-            //FillTheCubeWithPrefabAnchors(cube, listPrefabAnchor);
-
-            //meshToBore.mesh = BooleanDifference(meshToBore.mesh, holeAnchor);
             Model result = CSG.Subtract(meshToBore.gameObject, holeAnchor.gameObject);
 
             // Create a gameObject to render the result
@@ -540,165 +532,5 @@ public class MeshCreator : MonoBehaviour
         back,
         left,
         bot
-    }
-
-    public static Mesh BooleanDifference(Mesh originalMesh, Transform holeTransform)
-    {
-        // Step 1: Get original mesh data
-        Vector3[] originalVertices = originalMesh.vertices;
-        int[] originalTriangles = originalMesh.triangles;
-        List<Vector3> newVertices = new List<Vector3>();
-        List<int> newTriangles = new List<int>();
-
-        // Step 2: Transform hole dimensions and bounding box
-        Matrix4x4 holeMatrix = holeTransform.localToWorldMatrix; // Transform of the hole
-        Vector3 holeScale = holeTransform.localScale;
-        Bounds holeBounds = new Bounds(holeTransform.position, holeScale);
-
-        // Step 3: Iterate through the triangles
-        for (int i = 0; i < originalTriangles.Length; i += 3)
-        {
-            int v0 = originalTriangles[i];
-            int v1 = originalTriangles[i + 1];
-            int v2 = originalTriangles[i + 2];
-
-            Vector3 p0 = originalVertices[v0];
-            Vector3 p1 = originalVertices[v1];
-            Vector3 p2 = originalVertices[v2];
-
-            // Step 4: Check if the triangle is inside or intersects the hole
-            if (IsTriangleIntersectingOrInsideHole(p0, p1, p2, holeBounds, holeMatrix))
-            {
-                // This triangle is within the hole - skip it
-                continue;
-            }
-
-            // Add triangle to new mesh
-            AddTriangle(newVertices, newTriangles, p0, p1, p2);
-        }
-
-        // Step 5: Generate boundary faces for the intersection edges
-        GenerateBoundaryFaces(originalVertices, originalTriangles, newVertices, newTriangles, holeBounds, holeMatrix);
-
-        // Step 6: Create new mesh
-        Mesh resultMesh = new Mesh();
-        resultMesh.vertices = newVertices.ToArray();
-        resultMesh.triangles = newTriangles.ToArray();
-        resultMesh.RecalculateNormals(); // Ensure normals are updated for lighting
-        return resultMesh;
-    }
-
-    // Helper function to check if a triangle intersects or is inside the hole
-    private static bool IsTriangleIntersectingOrInsideHole(Vector3 p0, Vector3 p1, Vector3 p2, Bounds holeBounds, Matrix4x4 holeMatrix)
-    {
-        // Transform triangle vertices into the hole's local space
-        Vector3 localP0 = holeMatrix.inverse.MultiplyPoint3x4(p0);
-        Vector3 localP1 = holeMatrix.inverse.MultiplyPoint3x4(p1);
-        Vector3 localP2 = holeMatrix.inverse.MultiplyPoint3x4(p2);
-
-        // Check if any vertex is inside the hole
-        if (holeBounds.Contains(localP0) || holeBounds.Contains(localP1) || holeBounds.Contains(localP2))
-        {
-            return true;
-        }
-
-        // Check if any edge of the triangle intersects the bounding box
-        if (IsEdgeIntersectingBox(localP0, localP1, holeBounds) ||
-            IsEdgeIntersectingBox(localP1, localP2, holeBounds) ||
-            IsEdgeIntersectingBox(localP2, localP0, holeBounds))
-        {
-            return true;
-        }
-
-        // If no vertices are inside and no edges intersect, the triangle is outside the hole
-        return false;
-    }
-
-
-
-    // Helper function to check if an edge intersects the hole bounding box
-    private static bool IsEdgeIntersectingBox(Vector3 edgeStart, Vector3 edgeEnd, Bounds box)
-    {
-        // Perform the Slab Method to test for line-box intersection
-        Vector3 boxMin = box.min;
-        Vector3 boxMax = box.max;
-
-        float tMin = 0.0f;
-        float tMax = 1.0f;
-
-        Vector3 direction = edgeEnd - edgeStart;
-
-        for (int i = 0; i < 3; i++) // Check against each axis (X, Y, Z)
-        {
-            if (Mathf.Abs(direction[i]) < Mathf.Epsilon)
-            {
-                // The line is parallel to the slab. Check if the start point is outside the slab.
-                if (edgeStart[i] < boxMin[i] || edgeStart[i] > boxMax[i])
-                    return false;
-            }
-            else
-            {
-                // Compute intersection times for the slabs
-                float invDir = 1.0f / direction[i];
-                float t1 = (boxMin[i] - edgeStart[i]) * invDir;
-                float t2 = (boxMax[i] - edgeStart[i]) * invDir;
-
-                if (t1 > t2) // Swap t1 and t2 if needed
-                {
-                    float temp = t1;
-                    t1 = t2;
-                    t2 = temp;
-                }
-
-                // Update tMin and tMax
-                tMin = Mathf.Max(tMin, t1);
-                tMax = Mathf.Min(tMax, t2);
-
-                // If tMin > tMax, there is no intersection
-                if (tMin > tMax)
-                    return false;
-            }
-        }
-
-        // If we reach here, the line segment intersects the box
-        return true;
-    }
-
-
-    // Helper function to check if a line segment intersects a box plane
-    private static bool IntersectsPlane(Vector3 edgeStart, Vector3 edgeEnd, Vector3 boxMin, Vector3 boxMax, Vector3 planeNormal)
-    {
-        Vector3 boxCenter = (boxMin + boxMax) / 2;
-        float planeD = Vector3.Dot(planeNormal, boxCenter);
-
-        float startDist = Vector3.Dot(planeNormal, edgeStart) - planeD;
-        float endDist = Vector3.Dot(planeNormal, edgeEnd) - planeD;
-
-        // If signs of distances are different, the edge crosses the plane
-        return startDist * endDist <= 0;
-    }
-
-
-    // Helper function to add a triangle to the new mesh
-    private static void AddTriangle(List<Vector3> vertices, List<int> triangles, Vector3 p0, Vector3 p1, Vector3 p2)
-    {
-        int index = vertices.Count;
-        vertices.Add(p0);
-        vertices.Add(p1);
-        vertices.Add(p2);
-        triangles.Add(index);
-        triangles.Add(index + 1);
-        triangles.Add(index + 2);
-    }
-
-    // Helper function to generate boundary faces for the intersection
-    private static void GenerateBoundaryFaces(Vector3[] originalVertices, int[] originalTriangles,
-        List<Vector3> newVertices, List<int> newTriangles, Bounds holeBounds, Matrix4x4 holeMatrix)
-    {
-        // Placeholder for boundary generation logic
-        // You'd need to identify edges on the intersection boundary and create quads/triangles to close the mesh.
-        // For simplicity, this part can be left as a future enhancement or added if required.
-
-        Debug.Log("Boundary face generation is currently not implemented. Add logic here if needed.");
     }
 }
