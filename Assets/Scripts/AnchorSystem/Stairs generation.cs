@@ -62,6 +62,8 @@ public class Stairsgeneration : MonoBehaviour
         List<SimpleStair> stairsList;
         public int totalSubStairNumber;
         Vector3 stepDimension;
+        bool existingStairs;
+        GameObject staircase;
 
         public enum StairType
         {
@@ -78,20 +80,27 @@ public class Stairsgeneration : MonoBehaviour
             this.anchor = anchor;
             type = StairType.toDefine;
             stairsList = new List<SimpleStair>();
-            stepDimension = new Vector3(0.3f, 0.2f, 1);
+            stepDimension = new Vector3(0.3f, 0.2f, anchor.localScale.z);
+            existingStairs = false;
         }
         //Specific creation
-        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1)
+        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1, float stepHeight = 0.2f)
         {
             this.anchor = anchor;
             this.type = type;
             this.totalSubStairNumber = totalSubStairNumber;
-            stepDimension = new Vector3(0.3f, 0.2f, anchor.localScale.z);
+            stepDimension = new Vector3(0.3f, stepHeight, anchor.localScale.z);
             stairsList = new List<SimpleStair>();
+            existingStairs = false;
         }
 
         //Getter
         public List<SimpleStair> GetStairList() => stairsList;
+        public List<SimpleStair> ResetStairList() { stairsList.Clear(); return stairsList; }
+        public GameObject GetStaircase() => existingStairs ? staircase : null;
+
+        //Setter 
+        public void SetStaircase(GameObject staircase) { existingStairs = true; this.staircase = staircase; }
     }
 
 
@@ -100,7 +109,8 @@ public class Stairsgeneration : MonoBehaviour
     {
         //MeshFilter[] stepMeshFilter = new MeshFilter[stairOrder.numberOfStep];
         List<MeshFilter> stepMeshFilter = new List<MeshFilter>(new MeshFilter[stairOrder.numberOfStep]);
-        Vector3 bottomStep = - new Vector3(stairOrder.anchor.localScale.x / 2, stairOrder.anchor.localScale.y / 2, 0) + new Vector3(stairOrder.stepDimension.x/2, 0, 0);
+        Vector3 bottomStep = -new Vector3(stairOrder.anchor.localScale.x / 2 - stairOrder.stepDimension.x / 2, stairOrder.anchor.localScale.y / 2, 0);
+        Vector3 topStep = new (stairOrder.anchor.localScale.x / 2 - stairOrder.stepDimension.z/2, (stairOrder.anchor.localScale.y - stairOrder.stepDimension.y)/ 2, 0);
         if (stairOrder.receptionStep) 
         { 
             bottomStep += new Vector3(stairOrder.stepDimension.z, 0, 0);
@@ -108,7 +118,7 @@ public class Stairsgeneration : MonoBehaviour
 
             GameObject topReceptionStep = GameObject.CreatePrimitive(PrimitiveType.Cube);
             topReceptionStep.transform.localScale = new Vector3(stairOrder.stepDimension.z, stairOrder.stepDimension.y, stairOrder.stepDimension.z);
-            topReceptionStep.transform.position = bottomStep + stairOrder.numberOfStep * new Vector3(stairOrder.stepDimension.x, stairOrder.stepDimension.y, 0) + new Vector3(stairOrder.stepDimension.x, - stairOrder.stepDimension.y, 0);
+            topReceptionStep.transform.position = topStep;
             GameObject botReceptionStep = GameObject.CreatePrimitive(PrimitiveType.Cube);
             botReceptionStep.transform.localScale = new Vector3(stairOrder.stepDimension.z, stairOrder.stepDimension.y, stairOrder.stepDimension.z);
             botReceptionStep.transform.position = bottomStep - new Vector3(stairOrder.stepDimension.z/2, stairOrder.stepDimension.y/2, 0) - new Vector3(stairOrder.stepDimension.x / 2, - stairOrder.stepDimension.y, 0);
@@ -165,7 +175,7 @@ public class Stairsgeneration : MonoBehaviour
     //Fills stairArchi's stairList
     public void SubdivideStairs(StairArchitect stairArchi, bool destroySubElement = true)
     {
-        List<SimpleStair> stairsList = stairArchi.GetStairList();
+        List<SimpleStair> stairsList = stairArchi.ResetStairList();
         List<GameObject> staircaseSubElement = new List<GameObject>();
         List<GameObject> otherConstructorObj = new List<GameObject>();
 
@@ -174,7 +184,8 @@ public class Stairsgeneration : MonoBehaviour
         switch (stairArchi.type)
         {
             case StairArchitect.StairType.straight:
-                stairsList.Add(new SimpleStair(stairArchi.anchor));
+                //Allow receptionstep if nbSubStairs>1
+                stairsList.Add(new SimpleStair(stairArchi.anchor, true));
                 break;
             case StairArchitect.StairType.Z_Shape:
                 for (int i = 0; i < stairArchi.totalSubStairNumber; i++)
@@ -218,8 +229,14 @@ public class Stairsgeneration : MonoBehaviour
                     otherConstructorObj.Add(simpleStairAnchor);
                 }
                 break;
-            /*case StairArchitect.StairType.O_Shape:
+            case StairArchitect.StairType.O_Shape:
                 bool stairAlongX = true;
+
+                //Only the first three can have a stair base,
+                //adapt the anchor height for stairAlongX=false,
+                //receptionStep == stairAlongX
+                //cyclic distribution : no Z dispacement according to i
+
                 for (int i = 0; i < stairArchi.totalSubStairNumber; i++)
                 {
                     GameObject simpleStairAnchor = new GameObject();
@@ -229,18 +246,22 @@ public class Stairsgeneration : MonoBehaviour
                     simpleStairAnchor.transform.localEulerAngles = new Vector3(0, i * -90, 0);
 
                     GameObject stairBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    //stairBase.transform.localScale = simpleStairAnchor.transform.localScale;
-                    stairBase.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.x, bottomPositionOfAnchor(simpleStairAnchor.transform) - bottomPositionOfAnchor(stairArchi.anchor), simpleStairAnchor.transform.localScale.z);
-                    stairBase.transform.position = simpleStairAnchor.transform.position;
-                    stairBase.transform.position -= new Vector3(0, simpleStairAnchor.transform.localScale.y / 2 + stairBase.transform.localScale.y / 2, 0);
+                    if (i < 3)
+                    {
+                        //stairBase.transform.localScale = simpleStairAnchor.transform.localScale;
+                        stairBase.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.x, bottomPositionOfAnchor(simpleStairAnchor.transform) - bottomPositionOfAnchor(stairArchi.anchor), simpleStairAnchor.transform.localScale.z);
+                        stairBase.transform.position = simpleStairAnchor.transform.position;
+                        stairBase.transform.position -= new Vector3(0, simpleStairAnchor.transform.localScale.y / 2 + stairBase.transform.localScale.y / 2, 0);
+                    }
+                    else { if (Application.isPlaying) { Destroy(stairBase); } else { DestroyImmediate(stairBase); } }
 
-                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform));
-                    staircaseSubElement.Add(stairBase);
+                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, stairAlongX, 0.2f, !(i<3)));
+                    if (i < 3) { staircaseSubElement.Add(stairBase); }
                     otherConstructorObj.Add(simpleStairAnchor);
 
                     stairAlongX = !stairAlongX;
                 }
-                break;*/
+                break;
         }
 
         foreach (SimpleStair stair in stairsList)
@@ -268,6 +289,8 @@ public class Stairsgeneration : MonoBehaviour
         staircase.transform.localRotation = stairArchi.anchor.localRotation;
 
         foreach(GameObject obj in otherConstructorObj) { if (Application.isPlaying) { Destroy(obj); } else { DestroyImmediate(obj); } }
+
+        stairArchi.SetStaircase(staircase);
     }
 
     [Button("Add a StairObject")]
@@ -276,7 +299,7 @@ public class Stairsgeneration : MonoBehaviour
         //Initialisation
         GameObject anchorObj = new GameObject("StairAnchor");
         anchorObj.transform.position = transform.position;
-        anchorObj.transform.localScale = new Vector3(5, 5, 3);
+        anchorObj.transform.localScale = new Vector3(5, 7, 3);
 
         BoxCollider collider = anchorObj.AddComponent<BoxCollider>();
         collider.size = new Vector3(1, 1, 1);
@@ -286,6 +309,14 @@ public class Stairsgeneration : MonoBehaviour
 
         //Create the stair
         SubdivideStairs(newStairArchi, false);
+    }
+
+    [Button("UpdateStair")]
+    public void UpdateStair(int indexToUpdate = 0)
+    {
+        StairArchitect stairArchi = stairArchitectList[indexToUpdate];
+        if(stairArchi.GetStaircase() != null) { Destroy(stairArchi.GetStaircase()); }
+        SubdivideStairs(stairArchi);
     }
 
 
