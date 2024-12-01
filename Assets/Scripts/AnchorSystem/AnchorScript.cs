@@ -30,7 +30,7 @@ public class AnchorScript : MonoBehaviour
             anchor = new GameObject().transform;
             anchor.position = position;
             anchor.localScale = size;
-            anchor.name = "Anchor";
+            anchor.name = $"{type} Anchor";
 
             anchorType = type;
         }
