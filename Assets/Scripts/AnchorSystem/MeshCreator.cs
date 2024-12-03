@@ -424,6 +424,7 @@ public class MeshCreator : MonoBehaviour
             Debug.LogError("You need at least two points to generate a wall.");
             return;
         }
+        bool roundWall = points[0] == points[^1];//^1 : point.Count -1
 
         Mesh mesh = new Mesh();
 
@@ -431,40 +432,78 @@ public class MeshCreator : MonoBehaviour
         List<int> triangles = new List<int>();
         List<Vector2> uvs = new List<Vector2>();
 
-        // Generate wall vertices
+        Vector3 p0Inner = new Vector3();
+        Vector3 p0TopIn = new Vector3();
         for (int i = 0; i < points.Count - 1; i++)
         {
             Vector3 p1 = points[i];
             Vector3 p2 = points[i + 1];
-
-            // Calculate direction and normal
             Vector3 direction = (p2 - p1).normalized;
-            Vector3 normal = new Vector3(-direction.z, 0, direction.x); // Perpendicular vector
+            Vector3 normal = new Vector3(-direction.z, 0, direction.x);
+            int distance = Mathf.RoundToInt((p2 - p1).magnitude);
 
             // Outer and inner points
             Vector3 p1Outer = p1 + normal * thickness / 2;
             Vector3 p1Inner = p1 - normal * thickness / 2;
-            Vector3 p2Outer = p2 + normal * thickness / 2;
-            Vector3 p2Inner = p2 - normal * thickness / 2;
-
-            // Top vertices (offset by height)
             Vector3 p1TopOut = p1Outer + Vector3.up * height;
             Vector3 p1TopIn = p1Inner + Vector3.up * height;
+
+            Vector3 p2Outer = p2 + normal * thickness / 2;
+            Vector3 p2Inner = p2 - normal * thickness / 2;
             Vector3 p2TopOut = p2Outer + Vector3.up * height;
             Vector3 p2TopIn = p2Inner + Vector3.up * height;
 
             //Front 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, 10, 10);//
+            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, distance, Mathf.RoundToInt(height));
             //Back 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut,  p2Outer, 10, 10);
+            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut,  p2Outer, Mathf.RoundToInt(height), distance);
             //Top 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1TopIn, p2TopIn, p2TopOut, p1TopOut, 1, 1);//
+            SubdivideFaceWithUniformTriangles(vertices, triangles, p1TopIn, p2TopIn, p2TopOut, p1TopOut, 1, 1);
+            if (i > 0)
+            {
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p0Inner, p1Inner, p1TopIn, p0TopIn, 1, 1);
+            }
             //Bot 
             SubdivideFaceWithUniformTriangles(vertices, triangles, p2Outer, p2Inner, p1Inner, p1Outer, 1, 1);
+
             //Right
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1Inner, p1TopIn, p1TopOut, 1, 1);
+            if (i > 0) 
+            {
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p0Inner, p1Inner, p1TopIn, p0TopIn, 1, 1);
+            }
+            else
+            {
+                if (roundWall)
+                {
+                    Vector3 directionFinal = (points[^1] - points[^2]).normalized;
+                    Vector3 normalFinal = new Vector3(-directionFinal.z, 0, directionFinal.x);
+                    Vector3 pFinalInner = points[0] - normalFinal * thickness / 2;
+                    Vector3 pFinalTopIn = pFinalInner + Vector3.up * height;
+                    SubdivideFaceWithUniformTriangles(vertices, triangles, pFinalInner, p1Inner, p1TopIn, pFinalTopIn, 1, 1);
+                }
+                else
+                {
+                    SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1Inner, p1TopIn, p1TopOut, 1, 1);
+                }
+            }
+
             //Left 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p2Inner, p2Outer, p2TopOut, p2TopIn, 1, 1);
+            if (i < points.Count - 2 || roundWall)
+            {
+                Vector3 direction23 = roundWall && i >= points.Count - 2 ? (points[1]-points[0]).normalized : (points[i + 2] - p2).normalized;
+                Vector3 normal23 = new Vector3(-direction23.z, 0, direction23.x);
+                Vector3 p2BisOuter = p2 + normal23 * thickness / 2;
+                Vector3 p2BisTopOut = p2BisOuter + Vector3.up * height;
+
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p2BisOuter, p2Outer, p2TopOut, p2BisTopOut, 1, 1);
+            }
+            else
+            {
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p2Inner, p2Outer, p2TopOut, p2TopIn, 1, 1);
+            }
+
+            p0Inner = p2Inner;
+            p0TopIn = p2TopIn;
         }
 
         cube = new GameObject("UniformCube");
