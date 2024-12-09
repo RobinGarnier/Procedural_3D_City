@@ -254,7 +254,7 @@ public class MeshCreator : MonoBehaviour
         Material cubeMaterial = new Material(Shader.Find("Standard"));
         cube.GetComponent<Renderer>().material = cubeMaterial;
     }
-    private void SubdivideFaceWithUniformTriangles(List<Vector3> verticesList, List<int> trianglesList, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, int subdivisionsX, int subdivisionsY)
+    private void SubdivideFaceWithUniformTriangles(List<Vector3> verticesList, List<int> trianglesList, Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, int subdivisionsX, int subdivisionsY, bool squareShape = false)
     {
         // p3\_______\ p2
         //   |    y  |
@@ -267,22 +267,41 @@ public class MeshCreator : MonoBehaviour
         Vector3 stepX = (v1 - v0) / subdivisionsX;
         Vector3 stepY = (v3 - v0) / subdivisionsY;
 
+        Vector3 step01 = (v1 - v0);
+        Vector3 step12 = (v2 - v1);
+        Vector3 step32 = (v2 - v3);
+        Vector3 step03 = (v3 - v0);
+
         // Loop through each subdivision to create uniform quads and split them into triangles
         for (int i = 0; i < subdivisionsX; i++)
         {
             for (int j = 0; j < subdivisionsY; j++)
             {
-                // Bottom-left corner of the current quad
-                Vector3 bl = v0 + stepX * i + stepY * j;
-                Vector3 br = bl + stepX;  // Bottom-right
-                Vector3 tl = bl + stepY;  // Top-left
-                Vector3 tr = bl + stepX + stepY;  // Top-right
+                if (squareShape)// Bottom-left corner of the current quad
+                {
+                    Vector3 bl = v0 + stepX * i + stepY * j;
+                    Vector3 br = bl + stepX;  // Bottom-right
+                    Vector3 tl = bl + stepY;  // Top-left
+                    Vector3 tr = bl + stepX + stepY;  // Top-right
 
-                // Add vertices to the list
-                verticesList.Add(bl);  // 0
-                verticesList.Add(br);  // 1
-                verticesList.Add(tl);  // 2
-                verticesList.Add(tr);  // 3
+                    verticesList.Add(bl);  // 0
+                    verticesList.Add(br);  // 1
+                    verticesList.Add(tl);  // 2
+                    verticesList.Add(tr);  // 3 
+                }
+                else
+                {
+                    //allow the creation of trapezoïdal shape that can be subdivide
+                    Vector3 p0 = v0 + step01 / subdivisionsX * i + (i / subdivisionsX * step03 + (1 - i / subdivisionsX) * step12) / subdivisionsY * j;
+                    Vector3 p1 = v0 + step01 / subdivisionsX * (i + 1) + (i / subdivisionsX * step03 + (1 - i / subdivisionsX) * step12) / subdivisionsY * j;
+                    Vector3 p2 = v0 + step01 / subdivisionsX * (i + 1) + (i / subdivisionsX * step03 + (1 - i / subdivisionsX) * step12) / subdivisionsY * (j + 1);
+                    Vector3 p3 = v0 + step01 / subdivisionsX * i + (i / subdivisionsX * step03 + (1 - i / subdivisionsX) * step12) / subdivisionsY * (j + 1);
+
+                    verticesList.Add(p0);  // 0
+                    verticesList.Add(p1);  // 1
+                    verticesList.Add(p3);  // 2
+                    verticesList.Add(p2);  // 3
+                }
 
                 int vertIndex = verticesList.Count - 4;  // Index of the bottom-left vertex of the quad
 
@@ -494,8 +513,13 @@ public class MeshCreator : MonoBehaviour
                 Vector3 normal23 = new Vector3(-direction23.z, 0, direction23.x);
                 Vector3 p2BisOuter = p2 + normal23 * thickness / 2;
                 Vector3 p2BisTopOut = p2BisOuter + Vector3.up * height;
+                Vector3 p2BisInner = p2 - normal23 * thickness / 2;
+                Vector3 p2BisTopIn = p2BisInner + Vector3.up * height;
 
                 SubdivideFaceWithUniformTriangles(vertices, triangles, p2BisOuter, p2Outer, p2TopOut, p2BisTopOut, 1, 1);
+
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p2TopIn, p2BisTopOut, p2TopOut, p2BisTopIn, 1, 1);
+                SubdivideFaceWithUniformTriangles(vertices, triangles,p2BisOuter, p2Inner, p2BisInner, p2Outer, 1, 1);
             }
             else
             {
