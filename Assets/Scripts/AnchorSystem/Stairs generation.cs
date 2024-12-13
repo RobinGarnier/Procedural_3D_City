@@ -107,32 +107,37 @@ public class Stairsgeneration : MonoBehaviour
     //From SimpleStair to a real stair in the scene
     public GameObject GenerateStairs(SimpleStair stairOrder)
     {
-        //MeshFilter[] stepMeshFilter = new MeshFilter[stairOrder.numberOfStep];
         List<MeshFilter> stepMeshFilter = new List<MeshFilter>(new MeshFilter[stairOrder.numberOfStep]);
+
+        //Position the first step
         Vector3 bottomStep = -new Vector3(stairOrder.anchor.localScale.x / 2 - stairOrder.stepDimension.x / 2, stairOrder.anchor.localScale.y / 2, 0);
-        Vector3 topStep = new (stairOrder.anchor.localScale.x / 2 - stairOrder.stepDimension.z/2, (stairOrder.anchor.localScale.y - stairOrder.stepDimension.y)/ 2, 0);
         if (stairOrder.receptionStep) 
         { 
             bottomStep += new Vector3(stairOrder.stepDimension.z, 0, 0);
+            //Allow to store the reception steps at the end of the mesh list
             stepMeshFilter.Add(null); stepMeshFilter.Add(null);
 
+            //Up step
+            Vector3 topStep = new(stairOrder.anchor.localScale.x / 2 - stairOrder.stepDimension.z / 2, (stairOrder.anchor.localScale.y - stairOrder.stepDimension.y) / 2, 0);
             GameObject topReceptionStep = GameObject.CreatePrimitive(PrimitiveType.Cube);
             topReceptionStep.transform.localScale = new Vector3(stairOrder.stepDimension.z, stairOrder.stepDimension.y, stairOrder.stepDimension.z);
             topReceptionStep.transform.position = topStep;
+            if (!stairOrder.hoverStep)
+            {
+                topReceptionStep.transform.localScale += (stairOrder.numberOfStep - 1) * new Vector3(0, stairOrder.stepDimension.y, 0);
+                topReceptionStep.transform.position += -new Vector3(0, topReceptionStep.transform.localScale.y / 2 - stairOrder.stepDimension.y + 0.0335f, 0); //idk why 0.0335 but it works
+            }
+
+            //Low step
             GameObject botReceptionStep = GameObject.CreatePrimitive(PrimitiveType.Cube);
             botReceptionStep.transform.localScale = new Vector3(stairOrder.stepDimension.z, stairOrder.stepDimension.y, stairOrder.stepDimension.z);
             botReceptionStep.transform.position = bottomStep - new Vector3(stairOrder.stepDimension.z/2, stairOrder.stepDimension.y/2, 0) - new Vector3(stairOrder.stepDimension.x / 2, - stairOrder.stepDimension.y, 0);
-
-            if (!stairOrder.hoverStep)
-            {
-                topReceptionStep.transform.localScale += (stairOrder.numberOfStep-1) * new Vector3(0, stairOrder.stepDimension.y, 0);
-                topReceptionStep.transform.position += -new Vector3(0, topReceptionStep.transform.localScale.y / 2 - stairOrder.stepDimension.y, 0);
-            }
 
             stepMeshFilter[stairOrder.numberOfStep + 1] = topReceptionStep.GetComponent<MeshFilter>();
             stepMeshFilter[stairOrder.numberOfStep] = botReceptionStep.GetComponent<MeshFilter>();
         }
 
+        //Creation of the regular steps
         for (int i = 0; i < stairOrder.numberOfStep; i++)
         {
             GameObject step = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -148,7 +153,7 @@ public class Stairsgeneration : MonoBehaviour
             stepMeshFilter[i] = step.GetComponent<MeshFilter>();
         }
 
-        //CombineInstance[] combine = new CombineInstance[stairOrder.numberOfStep];
+        //Combine all meshes into one
         List<CombineInstance> combineList = new List<CombineInstance>(new CombineInstance[stairOrder.numberOfStep]);
         if (stairOrder.receptionStep) { combineList.Add(new CombineInstance()); combineList.Add(new CombineInstance()); }
         CombineInstance[] combine = combineList.ToArray();
