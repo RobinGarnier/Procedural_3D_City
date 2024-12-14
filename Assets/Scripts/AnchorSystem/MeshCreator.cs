@@ -46,9 +46,39 @@ public class MeshCreator : MonoBehaviour
 
     [Header("Wall")]
     public List<Vector3> points;
-    float thickness = 0.5f;
-    float height = 2f;
+    public List<Vector2> thicknessList;
+    public List<float> heightList;
+    //float thicknessList = 0.5f;
+    //float heightList = 2f;
     public bool wall;
+
+    public class Wall
+    {
+        public List<Vector3> points;
+        public List<Vector2> topBotThickness;
+        public List<float> height;
+        public List<Transform> holeAnchor;
+
+        public Wall(List<Vector3> points, List<Vector2> topBotThickness, List<float> height, List<Transform> holeAnchor)
+        {
+            this.points = points;
+            this.topBotThickness = topBotThickness;
+            this.height = height;
+            this.holeAnchor = holeAnchor;
+        }
+        public Wall(List<Vector3> points, float thickness = 0.5f, float height = 2f)
+        {
+            this.points = points;
+            topBotThickness = new List<Vector2>(new Vector2[points.Count]);
+            this.height = new List<float>(new float[points.Count]);
+            for (int i=0;i<points.Count;i++)
+            {
+                topBotThickness[i] = new Vector2(thickness, thickness);
+                this.height[i] = height;
+            }
+            holeAnchor = new List<Transform>();
+        }
+    }
 
 
     //Create a cube 
@@ -310,7 +340,6 @@ public class MeshCreator : MonoBehaviour
                 trianglesList.Add(vertIndex + 2);   // Triangle 1: Top-left             //before : 3rd
                 trianglesList.Add(vertIndex + 1);   // Triangle 1: Bottom-right
 
-
                 trianglesList.Add(vertIndex + 1);   // Triangle 2: Bottom-right
                 trianglesList.Add(vertIndex + 2);   // Triangle 2: Top-left             //before : 3rd
                 trianglesList.Add(vertIndex + 3);   // Triangle 2: Top-right
@@ -462,20 +491,20 @@ public class MeshCreator : MonoBehaviour
             int distance = Mathf.RoundToInt((p2 - p1).magnitude);
 
             // Outer and inner points
-            Vector3 p1Outer = p1 + normal * thickness / 2;
-            Vector3 p1Inner = p1 - normal * thickness / 2;
-            Vector3 p1TopOut = p1Outer + Vector3.up * height;
-            Vector3 p1TopIn = p1Inner + Vector3.up * height;
+            Vector3 p1Outer = p1 + normal * thicknessList[i][0] / 2;
+            Vector3 p1Inner = p1 - normal * thicknessList[i][0] / 2;
+            Vector3 p1TopOut = p1Outer + Vector3.up * heightList[i];
+            Vector3 p1TopIn = p1Inner + Vector3.up * heightList[i];
 
-            Vector3 p2Outer = p2 + normal * thickness / 2;
-            Vector3 p2Inner = p2 - normal * thickness / 2;
-            Vector3 p2TopOut = p2Outer + Vector3.up * height;
-            Vector3 p2TopIn = p2Inner + Vector3.up * height;
+            Vector3 p2Outer = p2 + normal * thicknessList[i][0] / 2;
+            Vector3 p2Inner = p2 - normal * thicknessList[i][0] / 2;
+            Vector3 p2TopOut = p2Outer + Vector3.up * heightList[i];
+            Vector3 p2TopIn = p2Inner + Vector3.up * heightList[i];
 
             //Front 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, distance, Mathf.RoundToInt(height));
+            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, distance, Mathf.RoundToInt(heightList[i]));
             //Back 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut,  p2Outer, Mathf.RoundToInt(height), distance);
+            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut,  p2Outer, Mathf.RoundToInt(heightList[i]), distance);
             //Top 
             SubdivideFaceWithUniformTriangles(vertices, triangles, p1TopIn, p2TopIn, p2TopOut, p1TopOut, 1, 1);
             if (i > 0)
@@ -496,8 +525,8 @@ public class MeshCreator : MonoBehaviour
                 {
                     Vector3 directionFinal = (points[^1] - points[^2]).normalized;
                     Vector3 normalFinal = new Vector3(-directionFinal.z, 0, directionFinal.x);
-                    Vector3 pFinalInner = points[0] - normalFinal * thickness / 2;
-                    Vector3 pFinalTopIn = pFinalInner + Vector3.up * height;
+                    Vector3 pFinalInner = points[0] - normalFinal * thicknessList[i][0] / 2;
+                    Vector3 pFinalTopIn = pFinalInner + Vector3.up * heightList[i];
                     SubdivideFaceWithUniformTriangles(vertices, triangles, pFinalInner, p1Inner, p1TopIn, pFinalTopIn, 1, 1);
                 }
                 else
@@ -511,10 +540,10 @@ public class MeshCreator : MonoBehaviour
             {
                 Vector3 direction23 = roundWall && i >= points.Count - 2 ? (points[1]-points[0]).normalized : (points[i + 2] - p2).normalized;
                 Vector3 normal23 = new Vector3(-direction23.z, 0, direction23.x);
-                Vector3 p2BisOuter = p2 + normal23 * thickness / 2;
-                Vector3 p2BisTopOut = p2BisOuter + Vector3.up * height;
-                Vector3 p2BisInner = p2 - normal23 * thickness / 2;
-                Vector3 p2BisTopIn = p2BisInner + Vector3.up * height;
+                Vector3 p2BisOuter = p2 + normal23 * thicknessList[i][0] / 2;
+                Vector3 p2BisTopOut = p2BisOuter + Vector3.up * heightList[i];
+                Vector3 p2BisInner = p2 - normal23 * thicknessList[i][0] / 2;
+                Vector3 p2BisTopIn = p2BisInner + Vector3.up * heightList[i];
 
                 SubdivideFaceWithUniformTriangles(vertices, triangles, p2BisOuter, p2Outer, p2TopOut, p2BisTopOut, 1, 1);
 

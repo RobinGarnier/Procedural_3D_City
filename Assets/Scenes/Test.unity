@@ -206,6 +206,16 @@ MonoBehaviour:
   - {x: 11, y: 0, z: 0}
   - {x: 11, y: 2, z: -11}
   - {x: 0, y: 0, z: 0}
+  thicknessList:
+  - {x: 0.5, y: 0}
+  - {x: 0.5, y: 0}
+  - {x: 1.5, y: 0}
+  - {x: 1, y: 0}
+  heightList:
+  - 2
+  - 2
+  - 4
+  - 3
   wall: 0
 --- !u!4 &561152444
 Transform:
