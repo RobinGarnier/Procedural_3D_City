@@ -20,7 +20,7 @@ public class Stairsgeneration : MonoBehaviour
         public bool receptionStep;
 
 
-        public SimpleStair(Transform anchor, bool receptionStep = false, float stepHeight = 0.2f, bool hoverStep = false)
+        public SimpleStair(Transform anchor, bool receptionStep = false, bool hoverStep = false, float stepHeight = 0.2f)
         {
             this.anchor = anchor;
 
@@ -64,6 +64,7 @@ public class Stairsgeneration : MonoBehaviour
         Vector3 stepDimension;
         bool existingStairs;
         GameObject staircase;
+        bool hoverStep;
 
         public enum StairType
         {
@@ -84,7 +85,7 @@ public class Stairsgeneration : MonoBehaviour
             existingStairs = false;
         }
         //Specific creation
-        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1, float stepHeight = 0.2f)
+        public StairArchitect(Transform anchor, StairType type, int totalSubStairNumber = 1, float stepHeight = 0.2f, bool hoverStep = false)
         {
             this.anchor = anchor;
             this.type = type;
@@ -98,6 +99,7 @@ public class Stairsgeneration : MonoBehaviour
         public List<SimpleStair> GetStairList() => stairsList;
         public List<SimpleStair> ResetStairList() { stairsList.Clear(); return stairsList; }
         public GameObject GetStaircase() => existingStairs ? staircase : null;
+        public bool IsHoverStep() => hoverStep; 
 
         //Setter 
         public void SetStaircase(GameObject staircase) { existingStairs = true; this.staircase = staircase; }
@@ -190,7 +192,7 @@ public class Stairsgeneration : MonoBehaviour
         {
             case StairArchitect.StairType.straight:
                 //Allow receptionstep if nbSubStairs>1
-                stairsList.Add(new SimpleStair(stairArchi.anchor, true));
+                stairsList.Add(new SimpleStair(stairArchi.anchor, true, stairArchi.IsHoverStep()));
                 break;
             case StairArchitect.StairType.Z_Shape:
                 for (int i = 0; i < stairArchi.totalSubStairNumber; i++)
@@ -209,7 +211,7 @@ public class Stairsgeneration : MonoBehaviour
                     floorBase.transform.localScale = simpleStairAnchor.transform.localScale;
                     floorBase.transform.position = simpleStairAnchor.transform.position + new Vector3(0, 0, simpleStairAnchor.transform.localScale.z);
 
-                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, true));
+                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, true, stairArchi.IsHoverStep()));
                     staircaseSubElement.Add(stairBase);
                     staircaseSubElement.Add(floorBase);
                     otherConstructorObj.Add(simpleStairAnchor);
@@ -229,14 +231,16 @@ public class Stairsgeneration : MonoBehaviour
                     stairBase.transform.position = simpleStairAnchor.transform.position;
                     stairBase.transform.position -= new Vector3(0, simpleStairAnchor.transform.localScale.y/2 + stairBase.transform.localScale.y/2, 0);
 
-                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, true));
+                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, true, stairArchi.IsHoverStep()));
                     staircaseSubElement.Add(stairBase);
                     otherConstructorObj.Add(simpleStairAnchor);
                 }
                 break;
             case StairArchitect.StairType.O_Shape:
+                float stairPosition = 0;
                 bool stairAlongX = true;
-
+                Vector3 stepDimension = new();
+                float lastSimpleStairHeight = new(); 
                 //Only the first three can have a stair base,
                 //adapt the anchor height for stairAlongX=false,
                 //receptionStep == stairAlongX
@@ -245,10 +249,31 @@ public class Stairsgeneration : MonoBehaviour
                 for (int i = 0; i < stairArchi.totalSubStairNumber; i++)
                 {
                     GameObject simpleStairAnchor = new GameObject();
-                    simpleStairAnchor.transform.localScale = new Vector3(stairArchi.anchor.localScale.x, stairArchi.anchor.localScale.y / stairArchi.totalSubStairNumber, stairArchi.anchor.localScale.z / stairArchi.totalSubStairNumber);
-                    if (stairAlongX == false) { simpleStairAnchor.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.z, simpleStairAnchor.transform.localScale.y, simpleStairAnchor.transform.localScale.z); }
-                    simpleStairAnchor.transform.position = stairArchi.anchor.position + (i - (stairArchi.totalSubStairNumber - 1) / 2) * new Vector3(0, simpleStairAnchor.transform.localScale.y, simpleStairAnchor.transform.localScale.z);
+                    simpleStairAnchor.transform.localScale = new Vector3(stairArchi.anchor.localScale.x, stairArchi.anchor.localScale.y / stairArchi.totalSubStairNumber, stairArchi.anchor.localScale.z / 3);
+                    //simpleStairAnchor.transform.position = stairArchi.anchor.position + (i - (stairArchi.totalSubStairNumber - 1) / 2) * new Vector3(0, simpleStairAnchor.transform.localScale.y, 0); // simpleStairAnchor.transform.localScale.z
+
+                    if (stairAlongX == false) 
+                    {
+                        float anchorHeight = Mathf.CeilToInt(simpleStairAnchor.transform.localScale.z / stepDimension.x) * stepDimension.y;
+                        simpleStairAnchor.transform.localScale = new Vector3(simpleStairAnchor.transform.localScale.z, anchorHeight, simpleStairAnchor.transform.localScale.z); 
+                    }
                     simpleStairAnchor.transform.localEulerAngles = new Vector3(0, i * -90, 0);
+                    simpleStairAnchor.transform.position = stairArchi.anchor.position + new Vector3(0, lastSimpleStairHeight, 0);
+                    switch (stairPosition)
+                    {
+                        case 0:
+                            simpleStairAnchor.transform.position += new Vector3(0, 0, -stairArchi.anchor.localScale.z / 2 + simpleStairAnchor.transform.localScale.z / 2);
+                            break;
+                        case 1:
+                            simpleStairAnchor.transform.position += new Vector3(stairArchi.anchor.localScale.z / 2 + simpleStairAnchor.transform.localScale.z / 2, 0, 0);
+                            break;
+                        case 2:
+                            simpleStairAnchor.transform.position += new Vector3(0, 0, stairArchi.anchor.localScale.z / 2 - simpleStairAnchor.transform.localScale.z / 2);
+                            break;
+                        case 3:
+                            simpleStairAnchor.transform.position += new Vector3(-stairArchi.anchor.localScale.z / 2 - simpleStairAnchor.transform.localScale.z / 2, 0, 0);
+                            break;
+                    }
 
                     GameObject stairBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     if (i < 3)
@@ -260,11 +285,14 @@ public class Stairsgeneration : MonoBehaviour
                     }
                     else { if (Application.isPlaying) { Destroy(stairBase); } else { DestroyImmediate(stairBase); } }
 
-                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, stairAlongX, 0.2f, !(i<3)));
+                    stairsList.Add(new SimpleStair(simpleStairAnchor.transform, stairAlongX, !(i<3) || stairArchi.IsHoverStep(), 0.2f));
                     if (i < 3) { staircaseSubElement.Add(stairBase); }
                     otherConstructorObj.Add(simpleStairAnchor);
 
+                    stairPosition = stairPosition == 3 ? 0 : stairPosition+1;
                     stairAlongX = !stairAlongX;
+                    if (i==0) { stepDimension = stairsList[0].stepDimension; }
+                    lastSimpleStairHeight = simpleStairAnchor.transform.position.y + simpleStairAnchor.transform.localScale.y/2;
                 }
                 break;
         }
@@ -299,7 +327,7 @@ public class Stairsgeneration : MonoBehaviour
     }
 
     [Button("Add a StairObject")]
-    public void AddStairArchitect(StairArchitect.StairType type = StairArchitect.StairType.V_Shape, int totalSubStairNumber = 3)
+    public void AddStairArchitect(StairArchitect.StairType type = StairArchitect.StairType.V_Shape, int totalSubStairNumber = 3, bool hoverStep = false)
     {
         //Initialisation
         GameObject anchorObj = new GameObject("StairAnchor");
@@ -309,7 +337,7 @@ public class Stairsgeneration : MonoBehaviour
         BoxCollider collider = anchorObj.AddComponent<BoxCollider>();
         collider.size = new Vector3(1, 1, 1);
 
-        StairArchitect newStairArchi = new StairArchitect(anchorObj.transform, type, totalSubStairNumber);
+        StairArchitect newStairArchi = new StairArchitect(anchorObj.transform, type, totalSubStairNumber, 0.2f, hoverStep);
         stairArchitectList.Add(newStairArchi);
 
         //Create the stair
