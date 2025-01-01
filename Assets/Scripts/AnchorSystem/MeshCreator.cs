@@ -45,12 +45,15 @@ public class MeshCreator : MonoBehaviour
     Face[] faceNameList;
 
     [Header("Wall")]
-    public List<Vector3> points;
-    //public List<Vector2> thicknessList;
-    //public List<float> heightList;
-    float thicknessList = 0.5f;
-    float heightList = 2f;
+    public List<Vector3> pointsList;
+    float thickness = 0.5f;
+    float height = 2f;
     public bool wall;
+
+    [Header("District")]
+    public bool district;
+    public Transform districtAnchor;
+    public List<Vector3> entryPointsList;
 
     public class Wall
     {
@@ -76,6 +79,47 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
+    public class BuildingRef 
+    {
+        public List<Vector3> anchorLimitPoints;
+        public List<Vector3> entryPoints;
+        public List<int> openSides;
+        public float size;
+        public bool dividable;
+
+        public BuildingRef(List<Vector3> listLimitPoint, List<Vector3> listEntryPoint = null, List<int> listOpenSide = null)
+        {
+            anchorLimitPoints = listLimitPoint;
+            entryPoints = listEntryPoint;
+            openSides = listOpenSide;
+            size = CalculateBuildingArea(anchorLimitPoints);
+            dividable = listEntryPoint != null || listOpenSide != null;
+        }
+
+        public static float CalculateBuildingArea(List<Vector3> limitPoints)
+        {
+            if (limitPoints.Count < 3)
+            {
+                Debug.LogError("A polygon must have at least 3 points to calculate area.");
+                return 0f;
+            }
+
+            float area = 0f;
+            int n = limitPoints.Count;
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 current = limitPoints[i];
+                Vector3 next = limitPoints[(i + 1) % n]; // Wrap around to the first point
+
+                //Shoelace formula
+                area += (current.x * next.z) - (current.z * next.x);
+            }
+
+            return Mathf.Abs(area) / 2f;
+        }
+
+    }
 
     //Create a cube 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face[] subdivFace = null, int subdiv = 0)
@@ -415,53 +459,9 @@ public class MeshCreator : MonoBehaviour
         Vector3 localDim = pointInWorld - holeCenter;
         return Mathf.Abs(localDim.x) < holeDimensions.x / 2 + tolerence && Mathf.Abs(localDim.y) < holeDimensions.y / 2 + tolerence && Mathf.Abs(localDim.z) < holeDimensions.z / 2 + tolerence;
     }
-    /*public void CreateHoleInMesh(Mesh mesh, Vector3 holeCenter, Vector3 holeDimensions)
-    {
-        // Get the existing vertices and triangles from the mesh
-        Vector3[] vertices = mesh.vertices;
-        int[] triangles = mesh.triangles;
-
-        // Create new lists to hold the modified mesh data
-        List<Vector3> newVertices = new List<Vector3>(vertices);
-        List<int> newTriangles = new List<int>();
-        Debug.Log($"original tri number : ${triangles.Length}");
-        // Iterate through the triangles
-        for (int i = 0; i < triangles.Length; i += 3)
-        {
-            // Get the vertex indices for the current triangle
-            int v0 = triangles[i];
-            int v1 = triangles[i + 1];
-            int v2 = triangles[i + 2];
-
-            // Get the actual vertex positions
-            Vector3 p0 = vertices[v0];
-            Vector3 p1 = vertices[v1];
-            Vector3 p2 = vertices[v2];
-
-            // Check if this triangle intersects the hole
-            if (!(IsPointInCube(p0, holeCenter, holeDimensions) &&
-                IsPointInCube(p1, holeCenter, holeDimensions) &&
-                IsPointInCube(p2, holeCenter, holeDimensions) ))
-            {
-                // If the triangle is not in the hole, add it to the new triangle list
-                newTriangles.Add(v0);
-                newTriangles.Add(v1);
-                newTriangles.Add(v2);
-            }
-            // Otherwise, we skip this triangle, which removes it from the mesh
-        }
-        //Debug.Log($"new tri number : ${newTriangles.Count}");
-
-        // Update the mesh with the new vertices and triangles
-        mesh.Clear();
-        mesh.vertices = newVertices.ToArray();
-        mesh.triangles = newTriangles.ToArray();
-        mesh.RecalculateNormals();  // Recalculate normals to ensure proper lighting
-    }*/
-
 
     //Create a wall
-    public void GenerateWall()
+    public void GenerateWall(List<Vector3>points, float heightList = 2f, float thicknessList = 0.5f)
     {
         if (points == null || points.Count < 2)
         {
@@ -583,8 +583,158 @@ public class MeshCreator : MonoBehaviour
         cube.GetComponent<Renderer>().material = cubeMaterial;
     }
 
+    //Divide a surface into list of BuildingReference
+    public void SurfaceDivider(Transform districtAnchor, List<Vector3> entryPoints, float streetWidth=0.5f)
+    {
+        List<List<Vector3>> returnBuildingRefList = new List<List<Vector3>>();
+        float bottomHeightRef = districtAnchor.position.y - districtAnchor.localScale.y/2;
+        List<Vector3> anchorLimitPoints = new List<Vector3>() {
+            new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z - districtAnchor.localScale.z/2),
+            new Vector3(districtAnchor.position.x + districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z - districtAnchor.localScale.z/2),
+            new Vector3(districtAnchor.position.x + districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z + districtAnchor.localScale.z/2),
+            new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z + districtAnchor.localScale.z/2)
+        };
+
+        Vector3 PivotBetweenTwoPoints(Vector3 point1, Vector3 point2) =>Random.Range(0,2) == 0 ? new Vector3(point1.x, point1.y, point2.z) : new Vector3(point2.x, point1.y, point1.z);
+        //
+        // p1     pivot             p1   pivot1
+        // x-----x                  x---x           *Distence(p1,pivot1)=Distence(p1,pivot)-offset
+        //       |        ===>           \
+        //       |          z             x pivot2
+        //       | p2       |_x           |
+        //       x                        x p2
+        //  OR
+        //  x p1
+        //  |
+        //  | pivot
+        //  x------x p2
+        //
+        List<Vector3> RandomBevelPivot(Vector3 point1, Vector3 pivot, Vector3 point2, float bevelMax = -1, float bevelMin = 0)
+        {
+            float offset = bevelMax == -1 ? Random.Range(bevelMin, Mathf.Min(Vector3.Distance(point1, pivot), Vector3.Distance(pivot, point2))) : Random.Range(bevelMin, bevelMax); // Random.Range(0, 10)/10
+            return new() { point1, point1 + offset * Vector3.Normalize(pivot-point1), pivot + (Mathf.Min(Vector3.Distance(point1, pivot), Vector3.Distance(pivot, point2))-offset) * Vector3.Normalize(point2-pivot), point2 };
+        }
+
+        List<Vector3> BevelBuildingRef(List<Vector3> buildingRef, int straightDenominatorProbability = 2)
+        {
+            List<Vector3> returnList = new();
+            for(int i = 0; i < buildingRef.Count-1; i++)
+            {
+                if (Random.Range(0, straightDenominatorProbability) == 0) { returnList.Add(buildingRef[i]); }
+                else
+                {
+                    int minIndex = i == 0 ? buildingRef.Count - 1 : i - 1;
+
+                    List<Vector3> bevelList = new List<Vector3>();
+                    bevelList = i==0 ? RandomBevelPivot(buildingRef[0], buildingRef[i], buildingRef[i + 1]) : RandomBevelPivot(returnList[^1], buildingRef[i], buildingRef[i + 1]);
+                    
+                    returnList.Add(bevelList[1]);
+                    returnList.Add(bevelList[2]);
+                }
+            }
+            returnList.Add(buildingRef[0]);
+            return returnList;
+        }
+
+
+
+        //first definition of the anchor
+        anchorLimitPoints.Add(anchorLimitPoints[0]);
+        //returnBuildingRefList.Add(anchorLimitPoints);
+
+        //find where to insert the entry point
+        bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-4f) => Vector2.Dot(point - s1, s2 - s1) > 0 && Vector2.Dot(point - s1, s2 - s1) < (s2 - s1).sqrMagnitude && Vector3.Cross(s2 - s1, point - s1).sqrMagnitude<approx ;
+        bool PointOnABuildingRef(Vector3 entryPoint, List<Vector3> buildingRef, int indexSegment) => indexSegment == buildingRef.Count - 1 ? PointOnASegment(entryPoint, buildingRef[indexSegment], buildingRef[0]) : PointOnASegment(entryPoint, buildingRef[indexSegment], buildingRef[indexSegment + 1]);
+
+        bool inList1 = true;
+        List<Vector3> buildingRefDivision1 = new List<Vector3>();
+        List<Vector3> buildingRefDivision2 = new List<Vector3>();
+
+        //Createthe correcte class for the building that need to be divided
+        BuildingRef building = new BuildingRef(anchorLimitPoints, entryPoints);
+
+
+        //Create the pivot needed for the street to be created
+        Vector3 middlePoint = RandomMiddlePoint(building.entryPoints[0], building.entryPoints[1]);
+        Debug.Log(middlePoint);
+        Vector3 pivot0_Mid = PivotBetweenTwoPoints(building.entryPoints[0], middlePoint);
+        Vector3 pivot1_Mid = PivotBetweenTwoPoints(building.entryPoints[1], middlePoint);
+        //Manage the street offset
+
+
+        //Divide building Ref into two buildingRef
+        for (int i = 0; i < building.anchorLimitPoints.Count; i ++)
+        {
+            //Put the buildingRefPoint in the correct subdivision
+            if (inList1) { buildingRefDivision1.Add(building.anchorLimitPoints[i]); }
+            else { buildingRefDivision2.Add(building.anchorLimitPoints[i]); }
+
+            //Insert the street in each list
+            foreach (Vector3 entryPoint in building.entryPoints)
+            {
+                if (PointOnABuildingRef(entryPoint, building.anchorLimitPoints, i))
+                {
+                    buildingRefDivision1.Add(entryPoint);
+                    buildingRefDivision2.Add(entryPoint);
+
+                    if(buildingRefDivision2.Count == 1)
+                    {
+                        if (entryPoint == building.entryPoints[0]) 
+                        {
+                            buildingRefDivision1.Add(pivot0_Mid);
+                            buildingRefDivision1.Add(middlePoint);
+                            buildingRefDivision1.Add(pivot1_Mid);
+                        }
+                        else 
+                        {
+                            buildingRefDivision1.Add(pivot1_Mid);
+                            buildingRefDivision1.Add(middlePoint);
+                            buildingRefDivision1.Add(pivot0_Mid);
+                        }
+                    }
+                    else 
+                    {
+                        if (entryPoint == building.entryPoints[0])
+                        {
+                            buildingRefDivision2.Add(pivot0_Mid);
+                            buildingRefDivision2.Add(middlePoint);
+                            buildingRefDivision2.Add(pivot1_Mid);
+                        }
+                        else
+                        {
+                            buildingRefDivision2.Add(pivot1_Mid);
+                            buildingRefDivision2.Add(middlePoint);
+                            buildingRefDivision2.Add(pivot0_Mid);
+                        }
+                    }
+
+                    inList1 = !inList1;
+                }
+            }
+
+        }
+        buildingRefDivision2.Add(buildingRefDivision2[0]);
+
+        returnBuildingRefList.Add(buildingRefDivision1);
+        returnBuildingRefList.Add(buildingRefDivision2);
+
+
+
+        //Draw the building for every buildingRef
+        int indexBuilding = 0;
+        foreach (List<Vector3> buildingRef in returnBuildingRefList)
+        {
+            //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
+            GenerateWall(BevelBuildingRef(buildingRef, 1), districtAnchor.localScale.y - 1 + Random.Range(-1,1));
+            //foreach(Vector3 point in buildingRef) { Debug.Log($"bat ${indexBuilding} : ${point}");}
+            indexBuilding++;
+        }
+    }
+
 
     //_________________________________HELPERS______________________________________________
+    //Define MiddlePoint
+    Vector3 RandomMiddlePoint(Vector3 point1, Vector3 point2) => point1 + Random.Range(0, Vector3.Distance(point2, point1))  * Vector3.Normalize(point2 - point1);
 
     //Subdivide specific faces of an existing cube
     public void SubdivideFacesOfExisitingCube(GameObject cubeToSubdiv, Face[] faceNameList, int subdivision)
@@ -713,7 +863,12 @@ public class MeshCreator : MonoBehaviour
             hole = false;
         }
         if (subdiv) { SubdivideFacesOfExisitingCube(cube, faceNameList, subdivision); subdiv = false; }
-        if(wall) { GenerateWall(); wall = false; }
+        if(wall) { GenerateWall(pointsList); wall = false; }
+        if (district) 
+        {
+            SurfaceDivider(districtAnchor, entryPointsList); 
+            district = false; 
+        }
     }
 
 
