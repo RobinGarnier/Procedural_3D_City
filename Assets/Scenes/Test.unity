@@ -239,6 +239,8 @@ MonoBehaviour:
   entryPointsList:
   - {x: 10, y: -3, z: -18}
   - {x: 10, y: -3, z: -2}
+  obj1: {fileID: 0}
+  obj2: {fileID: 0}
 --- !u!4 &561152444
 Transform:
   m_ObjectHideFlags: 0

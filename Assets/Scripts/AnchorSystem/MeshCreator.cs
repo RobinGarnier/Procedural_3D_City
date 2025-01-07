@@ -121,6 +121,9 @@ public class MeshCreator : MonoBehaviour
 
     }
 
+    public GameObject obj1 = null;
+    public GameObject obj2 = null;
+    bool choice = false;
     //Create a cube 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face[] subdivFace = null, int subdiv = 0)
     {
@@ -581,10 +584,12 @@ public class MeshCreator : MonoBehaviour
         meshFilter.mesh = mesh;
         Material cubeMaterial = new Material(Shader.Find("Standard"));
         cube.GetComponent<Renderer>().material = cubeMaterial;
+        _=choice?obj1 = cube : obj2 = cube;
+        choice = !choice;
     }
 
     //Divide a surface into list of BuildingReference
-    public void SurfaceDivider(Transform districtAnchor, List<Vector3> entryPoints, float streetWidth=0.5f)
+    public void SurfaceDivider(Transform districtAnchor, List<Vector3> entryPoints, float streetWidth=1f)
     {
         List<List<Vector3>> returnBuildingRefList = new List<List<Vector3>>();
         float bottomHeightRef = districtAnchor.position.y - districtAnchor.localScale.y/2;
@@ -640,7 +645,6 @@ public class MeshCreator : MonoBehaviour
 
         //first definition of the anchor
         anchorLimitPoints.Add(anchorLimitPoints[0]);
-        //returnBuildingRefList.Add(anchorLimitPoints);
 
         //find where to insert the entry point
         bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-4f) => Vector2.Dot(point - s1, s2 - s1) > 0 && Vector2.Dot(point - s1, s2 - s1) < (s2 - s1).sqrMagnitude && Vector3.Cross(s2 - s1, point - s1).sqrMagnitude<approx ;
@@ -660,7 +664,43 @@ public class MeshCreator : MonoBehaviour
         Vector3 pivot0_Mid = PivotBetweenTwoPoints(building.entryPoints[0], middlePoint);
         Vector3 pivot1_Mid = PivotBetweenTwoPoints(building.entryPoints[1], middlePoint);
         //Manage the street offset
+        List<Vector3> ManageStreetWidth(Vector3 point, float streetWidth, Vector3 streetVector, Vector3 streetVectorAfterCorner = default)
+        {
+            List<Vector3> returnStreetList = new();
+            if( streetVectorAfterCorner == default) //StraightStreet
+            {
+                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2));
+                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2));
+            }
+            else //Corner
+            {
+                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2) + (point - Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (streetWidth / 2) - point));
+                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2) + (point + Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (streetWidth / 2) - point));
+            }
+            return returnStreetList;
+        }
+        //Straight streets
+        List<Vector3> entryPoint0List = ManageStreetWidth(entryPoints[0], streetWidth, Vector3.Normalize(entryPoints[0]-middlePoint));
+        List<Vector3> entryPoint1List = ManageStreetWidth(entryPoints[1], streetWidth, Vector3.Normalize(entryPoints[1] - middlePoint));
+        List<Vector3> middlePointList = ManageStreetWidth(middlePoint, streetWidth, Vector3.Normalize(entryPoints[1] - middlePoint));
+        //Curved Streets
+        List<Vector3> pivot0_MidList = ManageStreetWidth(pivot0_Mid, streetWidth, Vector3.Normalize(pivot0_Mid - entryPoints[0]), Vector3.Normalize(middlePoint - pivot0_Mid));
+        List<Vector3> pivot1_MidList = ManageStreetWidth(pivot1_Mid, streetWidth, Vector3.Normalize(entryPoints[1] - pivot1_Mid), Vector3.Normalize(pivot1_Mid - middlePoint));
 
+        void CheckingRightLink(List<Vector3> offsetPointList, Vector3 closestPoint)
+        {
+            if(Vector3.Distance(offsetPointList[0], closestPoint) < Vector3.Distance(offsetPointList[1], closestPoint))
+            {
+                buildingRefDivision1.Add(offsetPointList[0]);
+                buildingRefDivision2.Add(offsetPointList[1]);
+            }
+            else
+            {
+                buildingRefDivision1.Add(offsetPointList[1]);
+                buildingRefDivision2.Add(offsetPointList[0]);
+            }
+            
+        }
 
         //Divide building Ref into two buildingRef
         for (int i = 0; i < building.anchorLimitPoints.Count; i ++)
@@ -670,41 +710,51 @@ public class MeshCreator : MonoBehaviour
             else { buildingRefDivision2.Add(building.anchorLimitPoints[i]); }
 
             //Insert the street in each list
-            foreach (Vector3 entryPoint in building.entryPoints)
+            for (int j = 0; j < building.entryPoints.Count; j++)
             {
-                if (PointOnABuildingRef(entryPoint, building.anchorLimitPoints, i))
+                if (PointOnABuildingRef(entryPoints[j], building.anchorLimitPoints, i))
                 {
-                    buildingRefDivision1.Add(entryPoint);
-                    buildingRefDivision2.Add(entryPoint);
+                    if (entryPoints[j] == building.entryPoints[0])
+                    {
+                        CheckingRightLink(entryPoint0List, building.anchorLimitPoints[i]);
+                        buildingRefDivision1.Add(entryPoint0List[0]);// entryPoint);
+                        buildingRefDivision2.Add(entryPoint0List[1]);// entryPoint);
+                    }
+                    else
+                    {
+                        CheckingRightLink(entryPoint1List, building.anchorLimitPoints[i]);
+                        buildingRefDivision1.Add(entryPoint1List[0]);// entryPoint);
+                        buildingRefDivision2.Add(entryPoint1List[1]);// entryPoint);
+                    }
 
                     if(buildingRefDivision2.Count == 1)
                     {
-                        if (entryPoint == building.entryPoints[0]) 
+                        if (entryPoints[j] == building.entryPoints[0]) 
                         {
-                            buildingRefDivision1.Add(pivot0_Mid);
-                            buildingRefDivision1.Add(middlePoint);
-                            buildingRefDivision1.Add(pivot1_Mid);
+                            buildingRefDivision1.Add(pivot0_MidList[0]);//pivot0_Mid);
+                            buildingRefDivision1.Add(middlePointList[0]);// middlePoint);
+                            buildingRefDivision1.Add(pivot1_MidList[0]);// pivot1_Mid);
                         }
                         else 
                         {
-                            buildingRefDivision1.Add(pivot1_Mid);
-                            buildingRefDivision1.Add(middlePoint);
-                            buildingRefDivision1.Add(pivot0_Mid);
+                            buildingRefDivision1.Add(pivot1_MidList[0]);// pivot1_Mid);
+                            buildingRefDivision1.Add(middlePointList[0]);// middlePoint);
+                            buildingRefDivision1.Add(pivot0_MidList[0]);// pivot0_Mid);
                         }
                     }
                     else 
                     {
-                        if (entryPoint == building.entryPoints[0])
+                        if (entryPoints[j] == building.entryPoints[0])
                         {
-                            buildingRefDivision2.Add(pivot0_Mid);
-                            buildingRefDivision2.Add(middlePoint);
-                            buildingRefDivision2.Add(pivot1_Mid);
+                            buildingRefDivision2.Add(pivot0_MidList[1]);// pivot0_Mid);
+                            buildingRefDivision2.Add(middlePointList[1]);// middlePoint);
+                            buildingRefDivision2.Add(pivot1_MidList[1]);// pivot1_Mid);
                         }
                         else
                         {
-                            buildingRefDivision2.Add(pivot1_Mid);
-                            buildingRefDivision2.Add(middlePoint);
-                            buildingRefDivision2.Add(pivot0_Mid);
+                            buildingRefDivision2.Add(pivot1_MidList[1]);// pivot1_Mid);
+                            buildingRefDivision2.Add(middlePointList[1]);// middlePoint);
+                            buildingRefDivision2.Add(pivot0_MidList[1]);// pivot0_Mid);
                         }
                     }
 
@@ -722,10 +772,12 @@ public class MeshCreator : MonoBehaviour
 
         //Draw the building for every buildingRef
         int indexBuilding = 0;
+        if (obj1 != null) { obj1.SetActive(false); }
+        if (obj2 != null) { obj2.SetActive(false); }
         foreach (List<Vector3> buildingRef in returnBuildingRefList)
         {
             //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
-            GenerateWall(BevelBuildingRef(buildingRef, 1), districtAnchor.localScale.y - 1 + Random.Range(-1,1));
+            GenerateWall(BevelBuildingRef(buildingRef, 1), districtAnchor.localScale.y);// - 1 + Random.Range(-1,1));
             //foreach(Vector3 point in buildingRef) { Debug.Log($"bat ${indexBuilding} : ${point}");}
             indexBuilding++;
         }
@@ -734,7 +786,7 @@ public class MeshCreator : MonoBehaviour
 
     //_________________________________HELPERS______________________________________________
     //Define MiddlePoint
-    Vector3 RandomMiddlePoint(Vector3 point1, Vector3 point2) => point1 + Random.Range(0, Vector3.Distance(point2, point1))  * Vector3.Normalize(point2 - point1);
+    Vector3 RandomMiddlePoint(Vector3 point1, Vector3 point2) => point1 + Vector3.Normalize(point2 - point1) * Vector3.Distance(point2, point1)/2;//Random.Range(0, Vector3.Distance(point2, point1)) *
 
     //Subdivide specific faces of an existing cube
     public void SubdivideFacesOfExisitingCube(GameObject cubeToSubdiv, Face[] faceNameList, int subdivision)
