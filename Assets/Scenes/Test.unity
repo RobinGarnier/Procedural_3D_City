@@ -234,11 +234,12 @@ MonoBehaviour:
   subdiv: 0
   pointsList: []
   wall: 0
-  district: 0
+  district: 1
   districtAnchor: {fileID: 1120124535}
   entryPointsList:
-  - {x: 10, y: -3, z: -18}
-  - {x: 10, y: -3, z: -2}
+  - {x: 8, y: -3, z: -18}
+  - {x: 14, y: -3, z: -2}
+  - {x: 0, y: -3, z: -10}
   obj1: {fileID: 0}
   obj2: {fileID: 0}
 --- !u!4 &561152444

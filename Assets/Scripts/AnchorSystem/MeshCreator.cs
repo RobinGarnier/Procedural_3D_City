@@ -118,12 +118,12 @@ public class MeshCreator : MonoBehaviour
 
             return Mathf.Abs(area) / 2f;
         }
-
     }
 
     public GameObject obj1 = null;
     public GameObject obj2 = null;
     bool choice = false;
+
     //Create a cube 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face[] subdivFace = null, int subdiv = 0)
     {
@@ -391,7 +391,6 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
-
     //Bore a mesh
     public void CreateHoleInMesh(Mesh mesh, Transform[] listHoleTransform)
     {
@@ -588,25 +587,25 @@ public class MeshCreator : MonoBehaviour
         choice = !choice;
     }
 
-
-    //Divide a surface into list of BuildingReference
-    public void SurfaceDivider(Transform districtAnchor, List<Vector3> entryPoints, float streetWidth=3f)
+    //From anchor to BuildingRef
+    List<Vector3>BuildingRefViaAnchor(Transform districtAnchor)
     {
-        List<List<Vector3>> returnBuildingRefList = new List<List<Vector3>>();
-
-        bool inList1 = true;
-        List<Vector3> buildingRefDivision1 = new ();
-        List<Vector3> buildingRefDivision2 = new ();
-
-        float bottomHeightRef = districtAnchor.position.y - districtAnchor.localScale.y/2;
-        List<Vector3> anchorLimitPoints = new List<Vector3>{
+        float bottomHeightRef = districtAnchor.position.y - districtAnchor.localScale.y / 2;
+        return new() {
             new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z - districtAnchor.localScale.z/2),
             new Vector3(districtAnchor.position.x + districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z - districtAnchor.localScale.z/2),
             new Vector3(districtAnchor.position.x + districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z + districtAnchor.localScale.z/2),
-            new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z + districtAnchor.localScale.z/2)
+            new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z + districtAnchor.localScale.z/2),
+            new Vector3(districtAnchor.position.x - districtAnchor.localScale.x/2, bottomHeightRef, districtAnchor.position.z - districtAnchor.localScale.z/2) //To close the loop
         };
-        BuildingRef building = new (anchorLimitPoints, entryPoints);
+    }
+    
+    //Divide a surface into list of BuildingReference
+    public void SurfaceDivider(List<Vector3> anchorLimitPoints, List<Vector3> entryPoints, float streetWidth = 3f)
+    {
+        List<List<Vector3>> returnBuildingRefList = new List<List<Vector3>>();
 
+        List<Vector3> overallStreetPointList = new();
 
         bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-4f)
             => Vector2.Dot(point - s1, s2 - s1) > 0 && Vector2.Dot(point - s1, s2 - s1) < (s2 - s1).sqrMagnitude && Vector3.Cross(s2 - s1, point - s1).sqrMagnitude < approx;
@@ -623,7 +622,7 @@ public class MeshCreator : MonoBehaviour
                 bool viable = true;
                 for (int i = 0; i < avoidPointList.Count - 1; i++)
                 {
-                    if(PointOnABuildingRef(possiblePivot, avoidPointList, i)) { viable = false; }
+                    if (PointOnABuildingRef(possiblePivot, avoidPointList, i)) { viable = false; }
                 }
                 return viable ? possiblePivot : new Vector3(point2.x, point1.y, point1.z);
             }
@@ -632,30 +631,17 @@ public class MeshCreator : MonoBehaviour
                 return Random.Range(0, 2) == 0 ? new Vector3(point1.x, point1.y, point2.z) : new Vector3(point2.x, point1.y, point1.z);
             }
         }
-        /*
-        // p1     pivot             p1   pivot1
-        // x-----x                  x---x           *Distence(p1,pivot1)=Distence(p1,pivot)-offset
-        //       |        ===>           \
-        //       |          z             x pivot2
-        //       | p2       |_x           |
-        //       x                        x p2
-        //  OR
-        //  x p1
-        //  |
-        //  | pivot
-        //  x------x p2
-        */
 
         List<Vector3> RandomBevelPivot(Vector3 point1, Vector3 pivot, Vector3 point2, float bevelMax = -1, float bevelMin = 0)
         {
             float offset = bevelMax == -1 ? Random.Range(bevelMin, Mathf.Min(Vector3.Distance(point1, pivot), Vector3.Distance(pivot, point2))) : Random.Range(bevelMin, bevelMax); // Random.Range(0, 10)/10
-            return new() { point1, point1 + offset * Vector3.Normalize(pivot-point1), pivot + (Mathf.Min(Vector3.Distance(point1, pivot), Vector3.Distance(pivot, point2))-offset) * Vector3.Normalize(point2-pivot), point2 };
+            return new() { point1, point1 + offset * Vector3.Normalize(pivot - point1), pivot + (Mathf.Min(Vector3.Distance(point1, pivot), Vector3.Distance(pivot, point2)) - offset) * Vector3.Normalize(point2 - pivot), point2 };
         }
 
         List<Vector3> BevelBuildingRef(List<Vector3> buildingRef, int straightDenominatorProbability = 2)
         {
             List<Vector3> returnList = new();
-            for(int i = 0; i < buildingRef.Count-1; i++)
+            for (int i = 0; i < buildingRef.Count - 1; i++)
             {
                 if (Random.Range(0, straightDenominatorProbability) == 0) { returnList.Add(buildingRef[i]); }
                 else
@@ -663,30 +649,32 @@ public class MeshCreator : MonoBehaviour
                     int minIndex = i == 0 ? buildingRef.Count - 1 : i - 1;
 
                     List<Vector3> bevelList = new List<Vector3>();
-                    bevelList = i==0 ? RandomBevelPivot(buildingRef[0], buildingRef[i], buildingRef[i + 1]) : RandomBevelPivot(returnList[^1], buildingRef[i], buildingRef[i + 1]);
-                    
+                    bevelList = i == 0 ? RandomBevelPivot(buildingRef[0], buildingRef[i], buildingRef[i + 1]) : RandomBevelPivot(returnList[^1], buildingRef[i], buildingRef[i + 1]);
+
                     returnList.Add(bevelList[1]);
                     returnList.Add(bevelList[2]);
                 }
             }
-            returnList.Add(buildingRef[0]);
+            try { returnList.Add(buildingRef[0]); } catch { }
             return returnList;
         }
 
-        List<Vector3> ManageStreetWidth(Vector3 point, float streetWidth, Vector3 streetVector, Vector3 streetVectorAfterCorner = default)
+        List<Vector3> ManageStreetWidth(Vector3 point, float streetWidth, Vector3 streetVector, Vector3 streetVectorAfterCorner = default, float setStreetWidth = -1)
         {
             List<Vector3> returnStreetList = new();
+            setStreetWidth = setStreetWidth == -1 ? streetWidth : setStreetWidth;
+
             //StraightStreet
             if (streetVectorAfterCorner == default)
             {
-                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2));
-                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2));
+                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (setStreetWidth / 2));
+                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (setStreetWidth / 2));
             }
             //Corner
             else
             {
-                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2) + (point - Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (streetWidth / 2) - point));
-                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (streetWidth / 2) + (point + Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (streetWidth / 2) - point));
+                returnStreetList.Add(point + Vector3.Cross(streetVector, Vector3.up).normalized * (setStreetWidth / 2) + (point - Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (setStreetWidth / 2) - point));
+                returnStreetList.Add(point - Vector3.Cross(streetVector, Vector3.up).normalized * (setStreetWidth / 2) + (point + Vector3.Cross(streetVectorAfterCorner, Vector3.up).normalized * (setStreetWidth / 2) - point));
             }
             return returnStreetList;
         }
@@ -695,127 +683,171 @@ public class MeshCreator : MonoBehaviour
         {
             if (entryPoint0.x == entryPoint1.x || entryPoint0.z == entryPoint1.z)
             {
-                return new List<List<Vector3>>() { 
-                    ManageStreetWidth(entryPoint0, streetWidth, Vector3.Normalize(entryPoint1 - entryPoint0)), 
-                    ManageStreetWidth(entryPoint1, streetWidth, Vector3.Normalize(entryPoint1 - entryPoint0)) 
+                return new List<List<Vector3>>() {
+                    ManageStreetWidth(entryPoint0, streetWidth, Vector3.Normalize(entryPoint1 - entryPoint0)),
+                    ManageStreetWidth(entryPoint1, streetWidth, Vector3.Normalize(entryPoint1 - entryPoint0))
                 };
             }
             else
             {
-                Vector3 middle = RandomMiddlePoint(entryPoint0, entryPoint1);
+                Vector3 middle = RandomMiddlePoint(entryPoint0 + streetWidth * Vector3.Normalize(entryPoint1 - entryPoint0), entryPoint1 - streetWidth * Vector3.Normalize(entryPoint1 - entryPoint0));
                 Vector3 pivot0_Mid = PivotBetweenTwoPoints(entryPoint0, middle, anchorLimitPoints);
                 Vector3 pivot1_Mid = PivotBetweenTwoPoints(entryPoint1, middle, anchorLimitPoints);
+
+                overallStreetPointList.Add(middle);
+                overallStreetPointList.Add(pivot0_Mid);
+                overallStreetPointList.Add(pivot1_Mid);
+
                 return new List<List<Vector3>>()
                 {
                     ManageStreetWidth(entryPoint0, streetWidth, Vector3.Normalize(pivot0_Mid - entryPoint0)),
-                    ManageStreetWidth(pivot0_Mid, streetWidth, Vector3.Normalize(Vector3.Normalize(middle - pivot0_Mid)+Vector3.Normalize(pivot0_Mid - entryPoint0))),
-                    ManageStreetWidth(middle, streetWidth, Vector3.Normalize(pivot1_Mid - middle)),
-                    ManageStreetWidth(pivot1_Mid, streetWidth, Vector3.Normalize(Vector3.Normalize(entryPoint1 - pivot1_Mid)+Vector3.Normalize(pivot1_Mid-middle))),
+                    ManageStreetWidth(pivot0_Mid, streetWidth, Vector3.Normalize(Vector3.Normalize(middle - pivot0_Mid)+Vector3.Normalize(pivot0_Mid - entryPoint0)), default, Mathf.Sqrt(2)*streetWidth),
+                    //ManageStreetWidth(middle, streetWidth, Vector3.Normalize(pivot1_Mid - middle)),
+                    ManageStreetWidth(pivot1_Mid, streetWidth, Vector3.Normalize(Vector3.Normalize(entryPoint1 - pivot1_Mid)+Vector3.Normalize(pivot1_Mid-middle)), default, Mathf.Sqrt(2)*streetWidth),
                     ManageStreetWidth(entryPoint1, streetWidth, Vector3.Normalize(entryPoint1 - pivot1_Mid))
                 };
             }
         }
-        List<List<Vector3>> streetPointList = StreetPointCreation(building.entryPoints[0], building.entryPoints[1], streetWidth);
 
-        void CheckingRightLink(List<Vector3> offsetPointList, Vector3 closestPoint, bool inverted = false)
+        void DivideABuildingRef(List<Vector3> buildingRef, List<Vector3> entryPointList)
         {
-            int BoolToInt(bool TrueToOne, bool invert = false) => TrueToOne ? (invert ? 0 : 1) : (invert ? 1 : 0);
-            buildingRefDivision1.Add(offsetPointList[BoolToInt(!(Vector3.Distance(offsetPointList[0], closestPoint) < Vector3.Distance(offsetPointList[1], closestPoint)), inverted)]);
-            buildingRefDivision2.Add(offsetPointList[BoolToInt((Vector3.Distance(offsetPointList[0], closestPoint) < Vector3.Distance(offsetPointList[1], closestPoint)), inverted)]);
-        }
+            bool inList1 = true;
+            List<Vector3> buildingRefDivision1 = new();
+            List<Vector3> buildingRefDivision2 = new();
 
-        void DistributeStreetPoints(List<Vector3> buildingRefDiv, int divRef, bool inverted = false)
+            BuildingRef building = new(buildingRef, entryPointList);
+            List<List<Vector3>> streetPointList = StreetPointCreation(building.entryPoints[0], building.entryPoints[1], streetWidth);
 
-        {
-            if (streetPointList.Count <= 2)
+            void CheckingRightLink(List<Vector3> offsetPointList, Vector3 closestPoint, bool inverted = false)
             {
-                return;
+                int BoolToInt(bool TrueToOne, bool invert = false) => TrueToOne ? (invert ? 0 : 1) : (invert ? 1 : 0);
+                buildingRefDivision1.Add(offsetPointList[BoolToInt(!(Vector3.Distance(offsetPointList[0], closestPoint) < Vector3.Distance(offsetPointList[1], closestPoint)), inverted)]);
+                buildingRefDivision2.Add(offsetPointList[BoolToInt((Vector3.Distance(offsetPointList[0], closestPoint) < Vector3.Distance(offsetPointList[1], closestPoint)), inverted)]);
             }
-            Debug.Log($"StreetPoints : {streetPointList.Count - 2}");
-            if (inverted)
+
+            void DistributeStreetPoints(List<Vector3> buildingRefDiv, int divRef, bool inverted = false)
             {
-                for (int i = streetPointList.Count - 2; i > 0; i--)
+                if (streetPointList.Count <= 2)
                 {
-                    buildingRefDiv.Add(streetPointList[i][divRef]);
+                    return;
+                }
+                if (inverted)
+                {
+                    for (int i = streetPointList.Count - 2; i > 0; i--)
+                    {
+                        buildingRefDiv.Add(streetPointList[i][divRef]);
+                    }
+                }
+                else
+                {
+                    for (int i = 1; i < streetPointList.Count - 1; i++)
+                    {
+                        buildingRefDiv.Add(streetPointList[i][divRef]);
+                    }
                 }
             }
-            else
+
+            //Divide building Ref into two buildingRef
+            for (int i = 0; i < building.anchorLimitPoints.Count; i++)
             {
-                for (int i = 1; i < streetPointList.Count - 1; i++)
+                //Put the buildingRefPoint in the correct subdivision
+                if (inList1) { buildingRefDivision1.Add(building.anchorLimitPoints[i]); }
+                else { buildingRefDivision2.Add(building.anchorLimitPoints[i]); }
+
+                //Insert the street in each list
+                for (int j = 0; j < building.entryPoints.Count; j++)
                 {
-                    buildingRefDiv.Add(streetPointList[i][divRef]);
-                }
-            }
-        }
-
-
-
-        //first definition of the anchor
-        anchorLimitPoints.Add(anchorLimitPoints[0]);
-
-
-        //Divide building Ref into two buildingRef
-        Debug.Log(streetPointList.Count);
-        for (int i = 0; i < building.anchorLimitPoints.Count; i ++)
-        {
-            //Put the buildingRefPoint in the correct subdivision
-            if (inList1) { buildingRefDivision1.Add(building.anchorLimitPoints[i]); }
-            else { buildingRefDivision2.Add(building.anchorLimitPoints[i]); }
-
-            //Insert the street in each list
-            for (int j = 0; j < building.entryPoints.Count; j++)
-            {
-                if (PointOnABuildingRef(entryPoints[j], building.anchorLimitPoints, i))
-                {
-                    if (entryPoints[j] == building.entryPoints[0])
-                    {
-                        CheckingRightLink(streetPointList[0], building.anchorLimitPoints[i]);
-                    }
-                    else
-                    {
-                        CheckingRightLink(streetPointList[^1], building.anchorLimitPoints[i], true);
-                    }
-
-                    if (buildingRefDivision2.Count == 1)
-                    {
-                        if (entryPoints[j] == building.entryPoints[0]) 
-                        {
-                            DistributeStreetPoints(buildingRefDivision1, 0);
-                        }
-                        else 
-                        {
-                            DistributeStreetPoints(buildingRefDivision1, 0, true);
-                        }
-                    }
-                    else 
+                    if (PointOnABuildingRef(entryPoints[j], building.anchorLimitPoints, i))
                     {
                         if (entryPoints[j] == building.entryPoints[0])
                         {
-                            DistributeStreetPoints(buildingRefDivision2, 1);
+                            CheckingRightLink(streetPointList[0], building.anchorLimitPoints[i]);
                         }
                         else
                         {
-                            DistributeStreetPoints(buildingRefDivision2, 1, true);
+                            CheckingRightLink(streetPointList[^1], building.anchorLimitPoints[i], true);
                         }
-                    }
 
-                    inList1 = !inList1;
+                        if (buildingRefDivision2.Count == 1)
+                        {
+                            if (entryPoints[j] == building.entryPoints[0])
+                            {
+                                DistributeStreetPoints(buildingRefDivision1, 0);
+                            }
+                            else
+                            {
+                                DistributeStreetPoints(buildingRefDivision1, 0, true);
+                            }
+                        }
+                        else
+                        {
+                            if (entryPoints[j] == building.entryPoints[0])
+                            {
+                                DistributeStreetPoints(buildingRefDivision2, 1);
+                            }
+                            else
+                            {
+                                DistributeStreetPoints(buildingRefDivision2, 1, true);
+                            }
+                        }
+
+                        inList1 = !inList1;
+                    }
                 }
             }
+            try { buildingRefDivision2.Add(buildingRefDivision2[0]); } catch { }
 
+            returnBuildingRefList.Add(buildingRefDivision1);
+            returnBuildingRefList.Add(buildingRefDivision2);
         }
-        buildingRefDivision2.Add(buildingRefDivision2[0]);
 
-        returnBuildingRefList.Add(buildingRefDivision1);
-        Debug.Log($"Div1 : ${buildingRefDivision1.Count}");
-        returnBuildingRefList.Add(buildingRefDivision2);
-        Debug.Log($"Div2 : ${buildingRefDivision2.Count}");
+        DivideABuildingRef(anchorLimitPoints, new() { entryPoints[0], entryPoints[1] });
 
+        for(int entryPointIndex = 2; entryPointIndex < entryPoints.Count; entryPointIndex++)
+        {
+            bool buildingRefFound = false;
+            for (int i = 0; i < returnBuildingRefList.Count; i++)
+            {
+                if (buildingRefFound) { break; }
+
+                for (int j = 0; j < returnBuildingRefList[i].Count; j++)
+                {
+                    if (PointOnABuildingRef(entryPoints[entryPointIndex], returnBuildingRefList[i], j))
+                    {
+                        List<Vector3> buildingRefToDivide = returnBuildingRefList[i];
+                        returnBuildingRefList.RemoveAt(i);
+
+                        //connect then entry point to the nearest streetPoint
+                        float minDistence = Vector3.Distance(overallStreetPointList[0], entryPoints[entryPointIndex]);
+                        int minIndex = 0;
+                        for(int streetIndex = 1; streetIndex < overallStreetPointList.Count - 1; streetIndex++)
+                        {
+                            if(minDistence> Vector3.Distance(overallStreetPointList[streetIndex], entryPoints[entryPointIndex])) 
+                            {
+                                minDistence = Vector3.Distance(overallStreetPointList[streetIndex], entryPoints[entryPointIndex]);
+                                minIndex = streetIndex;
+                            }
+                        }
+                        Vector3 closestStreetPoint = overallStreetPointList[minIndex];
+                        Debug.Log(closestStreetPoint);
+
+                        DivideABuildingRef(buildingRefToDivide, new() { entryPoints[entryPointIndex],  closestStreetPoint});
+                        Debug.Log("Divided");
+
+                        buildingRefFound = true;
+
+                        break;
+                    }
+                }
+            }
+        }
+        
 
         //Draw the building for every buildingRef
         int indexBuilding = 0;
         if (obj1 != null) { obj1.SetActive(false); }
         if (obj2 != null) { obj2.SetActive(false); }
+        Debug.Log(returnBuildingRefList.Count);
         foreach (List<Vector3> buildingRef in returnBuildingRefList)
         {
             //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
@@ -823,6 +855,7 @@ public class MeshCreator : MonoBehaviour
             indexBuilding++;
         }
     }
+
 
 
         //_________________________________HELPERS______________________________________________
@@ -843,6 +876,7 @@ public class MeshCreator : MonoBehaviour
 
         cube.transform.position = location;
     }
+    
     //from two anchor, correctly bore the needed cube
     public void FillTheCubeWithPrefabAnchors(GameObject cubeToBore, Transform[] PrefabAnchorListInWorld, bool alreadySubDiv = false)
     {
@@ -943,6 +977,7 @@ public class MeshCreator : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         if (create) { CreateUniformCube(dimension, verticeSpace); create = false; }
@@ -961,10 +996,21 @@ public class MeshCreator : MonoBehaviour
         if(wall) { GenerateWall(pointsList); wall = false; }
         if (district) 
         {
-            SurfaceDivider(districtAnchor, entryPointsList); 
+            SurfaceDivider(BuildingRefViaAnchor(districtAnchor), entryPointsList); 
             district = false; 
         }
     }
-
-
 }
+/*
+        // p1     pivot             p1   pivot1
+        // x-----x                  x---x           *Distence(p1,pivot1)=Distence(p1,pivot)-offset
+        //       |        ===>           \
+        //       |          z             x pivot2
+        //       | p2       |_x           |
+        //       x                        x p2
+        //  OR
+        //  x p1
+        //  |
+        //  | pivot
+        //  x------x p2
+        */
