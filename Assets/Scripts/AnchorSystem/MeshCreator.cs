@@ -120,9 +120,7 @@ public class MeshCreator : MonoBehaviour
         }
     }
 
-    public GameObject obj1 = null;
-    public GameObject obj2 = null;
-    bool choice = false;
+    public List<GameObject> obj = new List<GameObject>();
 
     //Create a cube 
     public void CreateUniformCube(Vector3 dimensionXYZ, float verticeDistance, Face[] subdivFace = null, int subdiv = 0)
@@ -583,8 +581,7 @@ public class MeshCreator : MonoBehaviour
         meshFilter.mesh = mesh;
         Material cubeMaterial = new Material(Shader.Find("Standard"));
         cube.GetComponent<Renderer>().material = cubeMaterial;
-        _=choice?obj1 = cube : obj2 = cube;
-        choice = !choice;
+        obj.Add(cube);
     }
 
     //From anchor to BuildingRef
@@ -607,8 +604,10 @@ public class MeshCreator : MonoBehaviour
 
         List<Vector3> overallStreetPointList = new();
 
-        bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-4f)
-            => Vector2.Dot(point - s1, s2 - s1) > 0 && Vector2.Dot(point - s1, s2 - s1) < (s2 - s1).sqrMagnitude && Vector3.Cross(s2 - s1, point - s1).sqrMagnitude < approx;
+        //bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-4f)
+        //=> Vector2.Dot(point - s1, s2 - s1) > 0 && Vector2.Dot(point - s1, s2 - s1) < (s2 - s1).sqrMagnitude && Vector3.Cross(s2 - s1, point - s1).sqrMagnitude < approx;
+        bool PointOnASegment(Vector3 point, Vector3 s1, Vector3 s2, float approx = 1E-2f)
+        => Mathf.Abs(Vector3.Distance(s2, s1)-(Vector3.Distance(s2, point)+Vector3.Distance(point, s1))) < approx;
 
         bool PointOnABuildingRef(Vector3 entryPoint, List<Vector3> buildingRef, int indexSegment)
             => indexSegment == buildingRef.Count - 1 ?
@@ -757,9 +756,9 @@ public class MeshCreator : MonoBehaviour
                 //Insert the street in each list
                 for (int j = 0; j < building.entryPoints.Count; j++)
                 {
-                    if (PointOnABuildingRef(entryPoints[j], building.anchorLimitPoints, i))
+                    if (PointOnABuildingRef(building.entryPoints[j], building.anchorLimitPoints, i))
                     {
-                        if (entryPoints[j] == building.entryPoints[0])
+                        if (building.entryPoints[j] == building.entryPoints[0])
                         {
                             CheckingRightLink(streetPointList[0], building.anchorLimitPoints[i]);
                         }
@@ -770,7 +769,7 @@ public class MeshCreator : MonoBehaviour
 
                         if (buildingRefDivision2.Count == 1)
                         {
-                            if (entryPoints[j] == building.entryPoints[0])
+                            if (building.entryPoints[j] == building.entryPoints[0])
                             {
                                 DistributeStreetPoints(buildingRefDivision1, 0);
                             }
@@ -781,7 +780,7 @@ public class MeshCreator : MonoBehaviour
                         }
                         else
                         {
-                            if (entryPoints[j] == building.entryPoints[0])
+                            if (building.entryPoints[j] == building.entryPoints[0])
                             {
                                 DistributeStreetPoints(buildingRefDivision2, 1);
                             }
@@ -815,7 +814,7 @@ public class MeshCreator : MonoBehaviour
                     if (PointOnABuildingRef(entryPoints[entryPointIndex], returnBuildingRefList[i], j))
                     {
                         List<Vector3> buildingRefToDivide = returnBuildingRefList[i];
-                        returnBuildingRefList.RemoveAt(i);
+                        returnBuildingRefList.Remove(returnBuildingRefList[i]);//RemoveAt(i);
 
                         //connect then entry point to the nearest streetPoint
                         float minDistence = Vector3.Distance(overallStreetPointList[0], entryPoints[entryPointIndex]);
@@ -832,7 +831,6 @@ public class MeshCreator : MonoBehaviour
                         Debug.Log(closestStreetPoint);
 
                         DivideABuildingRef(buildingRefToDivide, new() { entryPoints[entryPointIndex],  closestStreetPoint});
-                        Debug.Log("Divided");
 
                         buildingRefFound = true;
 
@@ -845,9 +843,7 @@ public class MeshCreator : MonoBehaviour
 
         //Draw the building for every buildingRef
         int indexBuilding = 0;
-        if (obj1 != null) { obj1.SetActive(false); }
-        if (obj2 != null) { obj2.SetActive(false); }
-        Debug.Log(returnBuildingRefList.Count);
+        for(int objIndex = obj.Count-1;objIndex>=0;objIndex--) { if (obj[objIndex] != null) { GameObject.Destroy(obj[objIndex]); } }
         foreach (List<Vector3> buildingRef in returnBuildingRefList)
         {
             //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
