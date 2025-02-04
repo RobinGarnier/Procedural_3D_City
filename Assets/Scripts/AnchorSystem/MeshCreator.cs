@@ -461,7 +461,7 @@ public class MeshCreator : MonoBehaviour
     }
 
     //Create a wall
-    public void GenerateWall(List<Vector3>points, float heightList = 2f, float thicknessList = 0.5f)
+    public void GenerateWall(List<Vector3>points, float heightList = 2f, float thicknessList = 0.1f)
     {
         if (points == null || points.Count < 2)
         {
@@ -598,7 +598,7 @@ public class MeshCreator : MonoBehaviour
     }
     
     //Divide a surface into list of BuildingReference
-    public void SurfaceDivider(List<Vector3> anchorLimitPoints, List<Vector3> entryPoints, float streetWidth = 3f)
+    public void SurfaceDivider(List<Vector3> anchorLimitPoints, List<Vector3> entryPoints, float streetWidth = 1f)
     {
         List<List<Vector3>> returnBuildingRefList = new List<List<Vector3>>();
 
@@ -612,6 +612,21 @@ public class MeshCreator : MonoBehaviour
         bool PointOnABuildingRef(Vector3 entryPoint, List<Vector3> buildingRef, int indexSegment)
             => indexSegment == buildingRef.Count - 1 ?
             PointOnASegment(entryPoint, buildingRef[indexSegment], buildingRef[0]) : PointOnASegment(entryPoint, buildingRef[indexSegment], buildingRef[indexSegment + 1]);
+
+        Vector3 ClosestPoint(Vector3 positionReference, List<Vector3> pointList)
+        {
+            float minDistence = Vector3.Distance(pointList[0], positionReference);
+            int minIndex = 0;
+            for (int index = 1; index < pointList.Count; index++)
+            {
+                if (minDistence > Vector3.Distance(pointList[index], positionReference))
+                {
+                    minDistence = Vector3.Distance(pointList[index], positionReference);
+                    minIndex = index;
+                }
+            }
+            return pointList[minIndex];
+        }
 
         Vector3 PivotBetweenTwoPoints(Vector3 point1, Vector3 point2, List<Vector3> avoidPointList = default)
         {
@@ -834,37 +849,23 @@ public class MeshCreator : MonoBehaviour
                         List<Vector3> buildingRefToDivide = returnBuildingRefList[i];
                         returnBuildingRefList.Remove(returnBuildingRefList[i]);//RemoveAt(i);
 
-                        //connect then entry point to the nearest streetSection
-                        //Find the closest streetPoint 
-                        float minDistence = Vector3.Distance(overallStreetPointList[0], entryPoints[entryPointIndex]);
-                        int minIndex = 0;
-                        for(int streetIndex = 1; streetIndex < overallStreetPointList.Count; streetIndex++)
+                        //connect then the new entry point to the nearest streetSection
+                        Vector3 closestStreetPoint = ClosestPoint(entryPoints[entryPointIndex], overallStreetPointList);
+                        Vector3 closestBuildingPoint = ClosestPoint(closestStreetPoint, buildingRefToDivide);
+                        int closeIndex = buildingRefToDivide.IndexOf(closestBuildingPoint);
+                        int uperIndex = closeIndex == buildingRefToDivide.Count-1 ? 0 : closeIndex + 1;
+                        int underIndex = closeIndex == 0 ? buildingRefToDivide.Count - 1 : closeIndex - 1;
+                        List<Vector3> listPossibleEntryPoint = new List<Vector3>();
+                        for(int a = 0; a < Mathf.Max(Vector3.Distance(buildingRefToDivide[closeIndex], buildingRefToDivide[uperIndex]), Vector3.Distance(buildingRefToDivide[closeIndex], buildingRefToDivide[underIndex]))-streetWidth/2; a++)
                         {
-                            if(minDistence> Vector3.Distance(overallStreetPointList[streetIndex], entryPoints[entryPointIndex])) 
-                            {
-                                minDistence = Vector3.Distance(overallStreetPointList[streetIndex], entryPoints[entryPointIndex]);
-                                minIndex = streetIndex;
-                            }
+                            if(a+streetWidth/2 < Vector3.Distance(buildingRefToDivide[closeIndex], buildingRefToDivide[uperIndex])) 
+                            { listPossibleEntryPoint.Add(closestBuildingPoint + (a + streetWidth / 2) * Vector3.Normalize(buildingRefToDivide[uperIndex]- buildingRefToDivide[closeIndex])); }
+                            if (a + streetWidth / 2 < Vector3.Distance(buildingRefToDivide[closeIndex], buildingRefToDivide[underIndex]))
+                            { listPossibleEntryPoint.Add(buildingRefToDivide[underIndex] + (a + streetWidth / 2) * Vector3.Normalize(buildingRefToDivide[closeIndex] - buildingRefToDivide[underIndex])); }
                         }
-                        Vector3 closestStreetPoint = overallStreetPointList[minIndex];
-                        float minDistenceStreetToBuild = Vector3.Distance(closestStreetPoint, buildingRefToDivide[0]);
-                        int minIndexBuild = 0;
-                        for (int buildingRefIndex = 1; buildingRefIndex < buildingRefToDivide.Count; buildingRefIndex++)
-                        {
-                            if (minDistence > Vector3.Distance(buildingRefToDivide[buildingRefIndex], closestStreetPoint))
-                            {
-                                minDistenceStreetToBuild = Vector3.Distance(buildingRefToDivide[buildingRefIndex], closestStreetPoint);
-                                minIndexBuild = buildingRefIndex;
-                            }
-                        }
-                        Vector3 closestBuildingPoint = buildingRefToDivide[minIndexBuild];
-                        Vector3 streetSectionOtherEnd = buildingRefToDivide[minIndex>=buildingRefToDivide.Count()-1 ? minIndexBuild-1 : minIndexBuild == 0 ? minIndexBuild + 1 : minIndexBuild + (int)Mathf.Pow(-1, Random.Range(0, 2))];
-                        float distenceLimit = Vector3.Distance(closestBuildingPoint, streetSectionOtherEnd) > streetWidth / 2 ? streetWidth / 2 : 0;
-                        Vector3 entryPointOnBuilding = RandomMiddlePoint(closestBuildingPoint, streetSectionOtherEnd, distenceLimit);
-                        //List<Vector3> entryPointPossibility = new() { entryPointOnStreet + streetWidth * Vector3.Cross(Vector3.Normalize(streetSectionOtherEnd - closestStreetPoint), Vector3.up), entryPointOnStreet + streetWidth * Vector3.Cross(Vector3.Normalize(streetSectionOtherEnd - closestStreetPoint), -Vector3.up) };
-                        //Vector3 entryPointOnBuilding = PointOnASegment(entryPointPossibility[0], streetSectionOtherEnd, closestStreetPoint) ? entryPointPossibility[0] : entryPointPossibility[1];
+                        Vector3 entryPointOnBuilding = ClosestPoint(entryPoints[entryPointIndex], listPossibleEntryPoint);
+                        Debug.Log(entryPointOnBuilding);
                         
-
                         DivideABuildingRef(buildingRefToDivide, new() { entryPoints[entryPointIndex],  entryPointOnBuilding});
 
                         buildingRefFound = true;

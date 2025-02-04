@@ -331,6 +331,7 @@ MonoBehaviour:
   entryPointsList:
   - {x: 8, y: -3, z: -18}
   - {x: 0, y: -3, z: -10}
+  - {x: 14, y: -3, z: -2}
   obj: []
 --- !u!4 &561152444
 Transform:
