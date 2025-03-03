@@ -55,6 +55,7 @@ public class MeshCreator : MonoBehaviour
     public Transform districtAnchor;
     public List<Vector3> entryPointsList;
 
+    [System.Serializable]
     public class Wall
     {
         public List<Vector3> points;
@@ -83,17 +84,17 @@ public class MeshCreator : MonoBehaviour
     {
         public List<Vector3> anchorLimitPoints;
         public List<Vector3> entryPoints;
-        public List<int> openSides;
+        public List<Vector3> borderEnteringStreets;
         public float size;
         public bool dividable;
 
-        public BuildingRef(List<Vector3> listLimitPoint, List<Vector3> listEntryPoint = null, List<int> listOpenSide = null)
+        public BuildingRef(List<Vector3> listLimitPoint, List<Vector3> listEntryPoint = null, List<Vector3> listBorderEnteringStreet = null)
         {
             anchorLimitPoints = listLimitPoint;
             entryPoints = listEntryPoint;
-            openSides = listOpenSide;
+            borderEnteringStreets = listBorderEnteringStreet;
             size = CalculateBuildingArea(anchorLimitPoints);
-            dividable = listEntryPoint != null || listOpenSide != null;
+            dividable = listEntryPoint != null || listBorderEnteringStreet != null;
         }
 
         public static float CalculateBuildingArea(List<Vector3> limitPoints)
