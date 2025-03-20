@@ -432,7 +432,7 @@ MonoBehaviour:
   subdiv: 0
   pointsList: []
   wall: 0
-  district: 0
+  district: 1
   districtAnchor: {fileID: 1120124535}
   entryPointsList:
   - {x: 8, y: -3, z: -18}
@@ -468,7 +468,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wallList:
   - points:
-    - {x: 14, y: 0, z: -2}
+    - {x: 7, y: 0, z: -18}
     - {x: 7, y: 0, z: -2}
     height: 6
     thickness: 0.5
@@ -483,6 +483,8 @@ MonoBehaviour:
   - anchor: {fileID: 2096787521}
     anchorType: 0
     anchorIndex: 0
+  facade: 0
+  delatable: []
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0

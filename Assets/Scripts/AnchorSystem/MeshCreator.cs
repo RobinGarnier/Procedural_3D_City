@@ -462,7 +462,7 @@ public class MeshCreator : MonoBehaviour
     }
 
     //Create a wall
-    public void GenerateWall(List<Vector3>points, float heightList = 2f, float thicknessList = 0.1f)
+    public void GenerateWall(List<Vector3>points, float heightList = 2f, float thicknessList = 0.1f, bool isFacade = true)
     {
         if (points == null || points.Count < 2)
         {
@@ -472,6 +472,8 @@ public class MeshCreator : MonoBehaviour
         bool roundWall = points[0] == points[^1];//^1 : point.Count -1
 
         Mesh mesh = new Mesh();
+
+        ComplexFacade facdeGenerator = isFacade ? GetComponent<ComplexFacade>() : null;
 
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
@@ -498,18 +500,25 @@ public class MeshCreator : MonoBehaviour
             Vector3 p2TopOut = p2Outer + Vector3.up * heightList;
             Vector3 p2TopIn = p2Inner + Vector3.up * heightList;
 
-            //Front 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, 1, 1); //distance, Mathf.RoundToInt(heightList[i]));
-            //Back 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut,  p2Outer, 1, 1); //Mathf.RoundToInt(heightList[i]), distance);
-            //Top 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p1TopIn, p2TopIn, p2TopOut, p1TopOut, 1, 1);
-            if (i > 0)
+            if (isFacade)
             {
-                SubdivideFaceWithUniformTriangles(vertices, triangles, p0Inner, p1Inner, p1TopIn, p0TopIn, 1, 1);
+                facdeGenerator.FromWallToFacade(new Wall(new() { p1Inner, p2Inner }, thicknessList, heightList));
             }
-            //Bot 
-            SubdivideFaceWithUniformTriangles(vertices, triangles, p2Outer, p2Inner, p1Inner, p1Outer, 1, 1);
+            else
+            {
+                //Front 
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p1Inner, p2Inner, p2TopIn, p1TopIn, 1, 1); //distance, Mathf.RoundToInt(heightList[i]));
+                                                                                                                  //Back 
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p1Outer, p1TopOut, p2TopOut, p2Outer, 1, 1); //Mathf.RoundToInt(heightList[i]), distance);
+                                                                                                                    //Top 
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p1TopIn, p2TopIn, p2TopOut, p1TopOut, 1, 1);
+                if (i > 0)
+                {
+                    SubdivideFaceWithUniformTriangles(vertices, triangles, p0Inner, p1Inner, p1TopIn, p0TopIn, 1, 1);
+                }
+                //Bot 
+                SubdivideFaceWithUniformTriangles(vertices, triangles, p2Outer, p2Inner, p1Inner, p1Outer, 1, 1);
+            }
 
             //Right
             if (i > 0) 
@@ -884,7 +893,7 @@ public class MeshCreator : MonoBehaviour
         foreach (List<Vector3> buildingRef in returnBuildingRefList)
         {
             //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
-            GenerateWall(BevelBuildingRef(buildingRef, 1), districtAnchor.localScale.y);
+            GenerateWall(BevelBuildingRef(buildingRef, 10), districtAnchor.localScale.y);
             indexBuilding++;
         }
     }
