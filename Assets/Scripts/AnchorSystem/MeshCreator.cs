@@ -893,7 +893,7 @@ public class MeshCreator : MonoBehaviour
         foreach (List<Vector3> buildingRef in returnBuildingRefList)
         {
             //GenerateWall(buildingRef, districtAnchor.localScale.y - 1 + Random.Range(-1, 1));
-            GenerateWall(BevelBuildingRef(buildingRef, 10), districtAnchor.localScale.y);
+            GenerateWall(BevelBuildingRef(buildingRef, 0), districtAnchor.localScale.y);
             indexBuilding++;
         }
     }
